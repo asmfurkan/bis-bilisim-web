@@ -32,10 +32,10 @@ export default function Navbar() {
       <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-6 py-3 lg:px-8">
         <a href="#top" className="group flex items-center transition-transform group-hover:scale-105">
           <Image
-            src="/bisbilisim-logo.png"
+            src="/bisbilisim-seffaflogo.png"
             alt="BİS Bilişim Teknolojileri"
-            width={1266}
-            height={396}
+            width={505}
+            height={159}
             priority
             className="h-9 w-auto lg:h-10"
           />

@@ -28,10 +28,10 @@ export default function Footer() {
           <div>
             <a href="#top" className="group flex items-center transition-transform group-hover:scale-105">
               <Image
-                src="/bisbilisim-logo.png"
+                src="/bisbilisim-seffaflogo.png"
                 alt="BİS Bilişim Teknolojileri"
-                width={1266}
-                height={396}
+                width={505}
+                height={159}
                 className="h-10 w-auto"
               />
             </a>
