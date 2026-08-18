@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Printer, Menu, X, Phone } from "lucide-react";
+import Image from "next/image";
+import { Menu, X, Phone } from "lucide-react";
 import { CONTACT } from "@/lib/contact";
 
 const navLinks = [
@@ -29,13 +30,15 @@ export default function Navbar() {
       }`}
     >
       <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-6 py-3 lg:px-8">
-        <a href="#top" className="group flex items-center gap-2.5">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-800 to-blue-950 text-white shadow-lg shadow-blue-900/30 transition-transform group-hover:scale-105">
-            <Printer className="h-5.5 w-5.5" strokeWidth={2.25} />
-          </span>
-          <span className="text-xl font-bold tracking-tight text-slate-900">
-            BİS <span className="font-light text-blue-800">Bilişim</span>
-          </span>
+        <a href="#top" className="group flex items-center transition-transform group-hover:scale-105">
+          <Image
+            src="/bisbilisim-logo.png"
+            alt="BİS Bilişim Teknolojileri"
+            width={1266}
+            height={396}
+            priority
+            className="h-9 w-auto lg:h-10"
+          />
         </a>
 
         <nav className="hidden items-center gap-1 lg:flex">

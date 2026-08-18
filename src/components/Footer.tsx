@@ -1,4 +1,5 @@
-import { Printer, Briefcase, Send, Camera, ThumbsUp } from "lucide-react";
+import Image from "next/image";
+import { Briefcase, Send, Camera, ThumbsUp } from "lucide-react";
 import { CONTACT } from "@/lib/contact";
 
 const quickLinks = [
@@ -25,13 +26,14 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-6 py-14 lg:px-8">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <a href="#top" className="group flex items-center gap-2.5">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-800 to-blue-950 text-white shadow-md shadow-blue-900/30 transition-transform group-hover:scale-105">
-                <Printer className="h-5.5 w-5.5" strokeWidth={2.25} />
-              </span>
-              <span className="text-xl font-bold tracking-tight text-slate-900">
-                BİS <span className="font-light text-blue-800">Bilişim</span>
-              </span>
+            <a href="#top" className="group flex items-center transition-transform group-hover:scale-105">
+              <Image
+                src="/bisbilisim-logo.png"
+                alt="BİS Bilişim Teknolojileri"
+                width={1266}
+                height={396}
+                className="h-10 w-auto"
+              />
             </a>
             <p className="mt-4 max-w-xs text-sm leading-6 text-slate-500">
               Epson yetkili servis güvencesiyle yazıcı, tarayıcı ve kurumsal
