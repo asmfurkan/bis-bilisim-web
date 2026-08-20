@@ -17,7 +17,6 @@ import { CONTACT } from "@/lib/contact";
 
 const NAME_PATTERN = "^[A-Za-zÇçĞğİıÖöŞşÜü\\s'-]{2,60}$";
 const PHONE_PATTERN = "^(\\+90|0)?[\\s.-]?5\\d{2}[\\s.-]?\\d{3}[\\s.-]?\\d{2}[\\s.-]?\\d{2}$";
-const WEB3FORMS_ACCESS_KEY = "28b0b9a2-1c10-4531-a919-7716d027d0c1";
 
 type SubmitStatus = "idle" | "submitting" | "success" | "error";
 
@@ -43,11 +42,9 @@ export default function ContactSection() {
     setStatus("submitting");
     setErrorMessage("");
 
-    // Client-side checks are UX only, not a trust boundary — the Web3Forms
-    // endpoint re-validates and sanitizes this payload server-side.
+    // Client-side checks are UX only, not a trust boundary — our /api/contact
+    // route (and Web3Forms behind it) re-validates and sanitizes this payload.
     const payload = {
-      access_key: WEB3FORMS_ACCESS_KEY,
-      subject: "Yeni Arıza Kaydı Bildirimi - BİS Bilişim",
       "Ad Soyad": formData.get("name"),
       Telefon: formData.get("phone"),
       "Cihaz / Yazıcı Modeli": formData.get("device"),
@@ -57,11 +54,10 @@ export default function ContactSection() {
     };
 
     try {
-      const response = await fetch("https://api.web3forms.com/v1/submit", {
+      const response = await fetch("/api/contact", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",
         },
         body: JSON.stringify(payload),
       });
