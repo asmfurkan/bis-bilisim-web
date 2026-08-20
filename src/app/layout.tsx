@@ -14,10 +14,42 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = "https://www.bisbilisim.com.tr";
+const SITE_TITLE = "BİS Bilişim | Bilgisayar Tamiri & Teknik Servis Hizmetleri";
+const SITE_DESCRIPTION =
+  "BİS Bilişim ile kurumsal ve bireysel bilgisayar tamiri, teknik servis, format, donanım onarımı ve arıza tespit hizmetleri.";
+
 export const metadata: Metadata = {
-  title: "BİS Bilişim | Epson Yetkili Servis & Yazıcı Çözümleri",
-  description:
-    "Yazıcı, tarayıcı ve kurumsal baskı sistemleriniz için orijinal parça garantili, hızlı ve profesyonel teknik servis desteği.",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: "BİS Bilişim",
+    locale: "tr_TR",
+    type: "website",
+    images: [
+      {
+        url: "/bisbilisim-logo.png",
+        width: 1266,
+        height: 396,
+        alt: "BİS Bilişim Teknolojileri",
+      },
+    ],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
