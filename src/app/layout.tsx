@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 const SITE_URL = "https://www.bisbilisim.com.tr";
-const SITE_TITLE = "BİS Bilişim | Bilgisayar Tamiri & Teknik Servis Hizmetleri";
+const SITE_TITLE = "BİS Bilişim Teknolojileri | Epson Yetkili Servisi";
 const SITE_DESCRIPTION =
-  "BİS Bilişim ile kurumsal ve bireysel bilgisayar tamiri, teknik servis, format, donanım onarımı ve arıza tespit hizmetleri.";
+  "BİS Bilişim Teknolojileri resmi web sitesi. Epson yetkili servis, satış, profesyonel teknik servis ve kurumsal bilişim çözümleri.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
