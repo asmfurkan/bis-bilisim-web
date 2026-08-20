@@ -51,9 +51,9 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: [{ url: "/icon.png?v=3", href: "/icon.png?v=3" }],
-    shortcut: ["/icon.png?v=3"],
-    apple: [{ url: "/icon.png?v=3", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: "/icon.png?v=4", href: "/icon.png?v=4" }],
+    shortcut: ["/icon.png?v=4"],
+    apple: [{ url: "/icon.png?v=4", sizes: "180x180", type: "image/png" }],
   },
   verification: {
     google: "rBH9I34PqgHyetjVIyK44wVVQ5pNQvtKZHhgmhA0FcA",
