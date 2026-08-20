@@ -91,8 +91,16 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-slate-200 pt-8 text-center text-sm text-slate-500">
-          © 2026 BİS Bilişim. Tüm hakları saklıdır.
+        <div className="mt-12 flex flex-col-reverse items-center gap-4 border-t border-slate-200 pt-8 text-center text-sm text-slate-500 sm:flex-row sm:justify-between">
+          <p>© 2026 BİS Bilişim. Tüm hakları saklıdır.</p>
+          <div className="flex items-center gap-5">
+            <a href="/kvkk" className="transition-colors hover:text-blue-800">
+              KVKK Aydınlatma Metni
+            </a>
+            <a href="/gizlilik-politikasi" className="transition-colors hover:text-blue-800">
+              Gizlilik Politikası
+            </a>
+          </div>
         </div>
       </div>
     </footer>
