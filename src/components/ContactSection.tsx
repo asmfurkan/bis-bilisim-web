@@ -321,7 +321,7 @@ export default function ContactSection() {
                   </tr>
                   <tr>
                     <td className="py-2">Cumartesi</td>
-                    <td className="py-2 text-right font-medium text-cyan-600">10:00 – 15:00</td>
+                    <td className="py-2 text-right font-medium text-cyan-600">09:00 – 13:00</td>
                   </tr>
                 </tbody>
               </table>
