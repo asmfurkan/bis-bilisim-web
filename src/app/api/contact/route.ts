@@ -1,10 +1,18 @@
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: Request) {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      console.error("Resend Error: RESEND_API_KEY ortam değişkeni tanımlı değil.");
+      return NextResponse.json(
+        { success: false, error: "Sunucu e-posta yapılandırması eksik." },
+        { status: 500 }
+      );
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
     const body = await request.json();
     const { name, phone, device, message, city, kvkkConsent } = body;
 
