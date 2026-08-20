@@ -43,14 +43,14 @@ export default function ContactSection() {
     setErrorMessage("");
 
     // Client-side checks are UX only, not a trust boundary — our /api/contact
-    // route (and Web3Forms behind it) re-validates and sanitizes this payload.
+    // route re-validates and sanitizes this payload before emailing it out.
     const payload = {
-      "Ad Soyad": formData.get("name"),
-      Telefon: formData.get("phone"),
-      "Cihaz / Yazıcı Modeli": formData.get("device"),
-      "İl / İlçe": formData.get("location") || "Belirtilmedi",
-      "Arıza Açıklaması": formData.get("message"),
-      "KVKK Onayı": formData.get("kvkkConsent") ? "Onaylandı" : "Onaylanmadı",
+      name: formData.get("name"),
+      phone: formData.get("phone"),
+      device: formData.get("device"),
+      city: formData.get("location") || "Belirtilmedi",
+      message: formData.get("message"),
+      kvkkConsent: Boolean(formData.get("kvkkConsent")),
     };
 
     try {
@@ -68,12 +68,17 @@ export default function ContactSection() {
         form.reset();
         setStatus("success");
       } else {
-        setErrorMessage(result.message || "Bir hata oluştu, lütfen tekrar deneyin.");
+        setErrorMessage(result.message || result.error || "Bir hata oluştu, lütfen tekrar deneyin.");
         setStatus("error");
       }
     } catch (error) {
       console.error("Form error:", error);
-      setErrorMessage("Bağlantı hatası oluştu. Lütfen tekrar deneyin.");
+      const detail = error instanceof Error ? error.message : "";
+      setErrorMessage(
+        detail
+          ? `Bağlantı hatası oluştu: ${detail}`
+          : "Bağlantı hatası oluştu. Lütfen tekrar deneyin."
+      );
       setStatus("error");
     }
   }
