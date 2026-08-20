@@ -65,22 +65,20 @@ export default function ContactSection() {
         },
         body: JSON.stringify(payload),
       });
+
       const result = await response.json();
 
       if (result.success) {
         form.reset();
         setStatus("success");
       } else {
+        setErrorMessage(result.message || "Bir hata oluştu, lütfen tekrar deneyin.");
         setStatus("error");
-        setErrorMessage(
-          result.message ?? "Gönderim sırasında bir hata oluştu. Lütfen tekrar deneyin."
-        );
       }
-    } catch {
+    } catch (error) {
+      console.error("Form error:", error);
+      setErrorMessage("Bağlantı hatası oluştu. Lütfen tekrar deneyin.");
       setStatus("error");
-      setErrorMessage(
-        "Bağlantı hatası oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin."
-      );
     }
   }
 
