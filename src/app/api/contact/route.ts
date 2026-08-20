@@ -1,12 +1,15 @@
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
 
+const FRIENDLY_ERROR_MESSAGE =
+  "Talebiniz iletilirken bir hata oluştu, lütfen daha sonra tekrar deneyiniz veya telefonla bize ulaşınız.";
+
 export async function POST(request: Request) {
   try {
     if (!process.env.RESEND_API_KEY) {
       console.error("Resend Error: RESEND_API_KEY ortam değişkeni tanımlı değil.");
       return NextResponse.json(
-        { success: false, error: "Sunucu e-posta yapılandırması eksik." },
+        { success: false, error: FRIENDLY_ERROR_MESSAGE },
         { status: 500 }
       );
     }
@@ -17,7 +20,7 @@ export async function POST(request: Request) {
     const { name, phone, device, message, city, kvkkConsent } = body;
 
     const { data, error: sendError } = await resend.emails.send({
-      from: "BİS Bilişim Form <onboarding@resend.dev>",
+      from: "BİS Bilişim <bildirim@bisbilisim.com.tr>",
       to: ["info@bisbilisim.com.tr"],
       subject: `Yeni Arıza Kaydı Bildirimi - ${name || "Müşteri"}`,
       html: `
@@ -40,15 +43,17 @@ export async function POST(request: Request) {
 
     if (sendError) {
       return NextResponse.json(
-        { success: false, error: sendError.message },
+        { success: false, error: FRIENDLY_ERROR_MESSAGE },
         { status: 502 }
       );
     }
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({
+      success: true,
+      message: "Talebiniz başarıyla iletildi. En kısa sürede sizinle iletişime geçeceğiz.",
+    });
   } catch (error) {
     console.error("Resend Error:", error);
-    const message = error instanceof Error ? error.message : "Bilinmeyen bir hata oluştu.";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json({ success: false, error: FRIENDLY_ERROR_MESSAGE }, { status: 500 });
   }
 }
