@@ -1,38 +1,38 @@
 import Image from "next/image";
-import { Printer, Droplets, PackageCheck, Network } from "lucide-react";
+import { Printer, Building2, PackageCheck, SearchCheck } from "lucide-react";
 
 const services = [
   {
     icon: Printer,
-    title: "Epson EcoTank & Ofis Yazıcı Onarımı",
-    description: "Mekanik arızalar, kağıt besleme, anakart ve sensör tamiri.",
+    title: "Epson EcoTank & L-Serisi Yazıcı Onarımı",
+    description: "Kafa açma, mekanik tamir ve ped sıfırlama işlemleri.",
     image: {
       src: "/hizmet-ecotank-yazici.jpg",
-      alt: "Epson EcoTank ofis yazıcısı teknik servis onarımı",
+      alt: "Epson EcoTank tanklı yazıcı teknik servis onarımı",
     },
   },
   {
-    icon: Droplets,
-    title: "Periyodik Bakım & Kafa Temizliği",
-    description: "Mürekkep yolları bakımı, baskı kafası açma ve pad değişimi.",
+    icon: Building2,
+    title: "Epson Kurumsal & WorkForce Pro Çözümleri",
+    description: "Kurumsal ofisler için WorkForce Pro kurulum ve bakım desteği.",
+    image: {
+      src: "/hizmet-workforce-pro.jpg",
+      alt: "Epson WorkForce Pro kurumsal yazıcı",
+    },
   },
   {
     icon: PackageCheck,
-    title: "Orijinal Epson Mürekkep & Yedek Parça",
-    description: "Orijinal mürekkep, toner ve Epson yedek parça temini.",
+    title: "Orijinal Epson Sarf Malzeme & Mürekkep",
+    description: "Orijinal Epson 103, 108 ve diğer seriler için mürekkep ve sarf malzeme temini.",
     image: {
       src: "/hizmet-orijinal-murekkep.jpg",
-      alt: "Orijinal Epson mürekkep kartuşları ve yedek parçalar",
+      alt: "Orijinal Epson mürekkep ve sarf malzemeleri",
     },
   },
   {
-    icon: Network,
-    title: "Kurumsal Bakım & Ağ Kurulumu",
-    description: "Ofis yazıcı altyapısı, ağ bağlantısı ve sürücü kurulumları.",
-    image: {
-      src: "/hizmet-kurumsal-ag.jpg",
-      alt: "Kurumsal ofis ağ kurulumu ve yazıcı altyapısı bakımı",
-    },
+    icon: SearchCheck,
+    title: "Periyodik Bakım, Kafa Temizliği ve Arıza Tespiti",
+    description: "Mürekkep yolları bakımı, baskı kafası temizliği ve detaylı arıza tespiti.",
   },
 ];
 
