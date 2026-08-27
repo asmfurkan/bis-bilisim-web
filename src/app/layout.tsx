@@ -62,7 +62,7 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icon.png",
     shortcut: "/favicon.ico",
-    apple: "/apple-icon.png",
+    apple: "/icon.png",
   },
   verification: {
     google: "rBH9I34PqgHyetjVIyK44wVVQ5pNQvtKZHhgmhA0FcA",
@@ -90,6 +90,14 @@ const LOCAL_BUSINESS_JSON_LD = {
   priceRange: "$$",
 };
 
+const SITE_NAME_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "BİS Bilişim",
+  alternateName: ["BİS Bilişim Teknolojileri", "BIS Bilisim"],
+  url: SITE_URL,
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -100,6 +108,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(LOCAL_BUSINESS_JSON_LD) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_NAME_JSON_LD) }}
         />
         {children}
         <WhatsAppButton />
