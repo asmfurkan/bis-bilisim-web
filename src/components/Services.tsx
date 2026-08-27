@@ -1,10 +1,15 @@
+import Image from "next/image";
 import { Printer, Droplets, PackageCheck, Network } from "lucide-react";
 
 const services = [
   {
     icon: Printer,
-    title: "Yazıcı & Donanım Onarımı",
+    title: "Epson EcoTank & Ofis Yazıcı Onarımı",
     description: "Mekanik arızalar, kağıt besleme, anakart ve sensör tamiri.",
+    image: {
+      src: "/hizmet-ecotank-yazici.jpg",
+      alt: "Epson EcoTank ofis yazıcısı teknik servis onarımı",
+    },
   },
   {
     icon: Droplets,
@@ -13,13 +18,21 @@ const services = [
   },
   {
     icon: PackageCheck,
-    title: "Orijinal Sarf Malzeme & Parça",
+    title: "Orijinal Epson Mürekkep & Yedek Parça",
     description: "Orijinal mürekkep, toner ve Epson yedek parça temini.",
+    image: {
+      src: "/hizmet-orijinal-murekkep.jpg",
+      alt: "Orijinal Epson mürekkep kartuşları ve yedek parçalar",
+    },
   },
   {
     icon: Network,
-    title: "Kurumsal Kurulum & Ağ Desteği",
+    title: "Kurumsal Bakım & Ağ Kurulumu",
     description: "Ofis yazıcı altyapısı, ağ bağlantısı ve sürücü kurulumları.",
+    image: {
+      src: "/hizmet-kurumsal-ag.jpg",
+      alt: "Kurumsal ofis ağ kurulumu ve yazıcı altyapısı bakımı",
+    },
   },
 ];
 
@@ -41,23 +54,37 @@ export default function Services() {
         </div>
 
         <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {services.map(({ icon: Icon, title, description }, index) => (
+          {services.map(({ icon: Icon, title, description, image }, index) => (
             <div
               key={title}
-              className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-all hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-900/10"
+              className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-900/10"
             >
               <span
                 aria-hidden
-                className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-gradient-to-r from-cyan-500 via-blue-800 to-amber-500 transition-transform duration-300 group-hover:scale-x-100"
+                className="absolute inset-x-0 top-0 z-10 h-1 origin-left scale-x-0 bg-gradient-to-r from-cyan-500 via-blue-800 to-amber-500 transition-transform duration-300 group-hover:scale-x-100"
               />
-              <span className="absolute top-6 right-7 text-sm font-bold text-slate-100 transition-colors group-hover:text-blue-100">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-800 transition-all duration-300 group-hover:scale-110 group-hover:bg-blue-800 group-hover:text-white">
-                <Icon className="h-6 w-6" strokeWidth={2.25} />
-              </span>
-              <h3 className="mt-5 text-lg font-bold text-slate-900">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+              {image ? (
+                <div className="relative h-40 w-full overflow-hidden bg-slate-100">
+                  <Image
+                    src={image.src}
+                    alt={image.alt}
+                    fill
+                    loading="lazy"
+                    sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+              ) : null}
+              <div className="relative p-7">
+                <span className="absolute top-0 right-7 text-sm font-bold text-slate-100 transition-colors group-hover:text-blue-100">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-800 transition-all duration-300 group-hover:scale-110 group-hover:bg-blue-800 group-hover:text-white">
+                  <Icon className="h-6 w-6" strokeWidth={2.25} />
+                </span>
+                <h3 className="mt-5 text-lg font-bold text-slate-900">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+              </div>
             </div>
           ))}
         </div>

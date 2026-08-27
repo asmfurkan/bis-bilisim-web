@@ -50,6 +50,25 @@ export default function Hero() {
             </a>
           </div>
         </div>
+
+        <div
+          aria-hidden
+          className="absolute right-8 bottom-8 hidden w-64 rounded-2xl border border-white/20 bg-white/95 p-4 shadow-2xl shadow-black/30 backdrop-blur-md lg:block xl:right-16"
+        >
+          <div className="relative h-32 w-full overflow-hidden rounded-lg bg-white">
+            <Image
+              src="/hizmet-ecotank-yazici.jpg"
+              alt="Epson EcoTank yazıcı"
+              fill
+              loading="lazy"
+              sizes="256px"
+              className="object-contain"
+            />
+          </div>
+          <p className="mt-3 text-center text-sm font-semibold text-blue-950">
+            Epson EcoTank &amp; L3150 / L3250 Serisi Teknik Servis
+          </p>
+        </div>
       </div>
     </section>
   );
