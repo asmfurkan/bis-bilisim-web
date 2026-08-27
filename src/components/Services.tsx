@@ -26,7 +26,7 @@ const services = [
     description: "Orijinal Epson 103, 108 ve diğer seriler için mürekkep ve sarf malzeme temini.",
     image: {
       src: "/hizmet-orijinal-murekkep.jpg",
-      alt: "Orijinal Epson mürekkep ve sarf malzemeleri",
+      alt: "Orijinal mürekkep kartuşları yakın çekim",
     },
   },
   {

@@ -5,8 +5,8 @@ export default function Hero() {
   return (
     <section id="top" className="relative flex min-h-[640px] scroll-mt-24 items-center overflow-hidden">
       <Image
-        src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=2000&q=80"
-        alt="Teknik servis atölyesinde yazıcı bakımı yapan teknisyen"
+        src="/hero-servis.jpg"
+        alt="Epson yazıcı ile modern bir çalışma ortamı"
         fill
         priority
         sizes="100vw"
@@ -66,7 +66,7 @@ export default function Hero() {
             />
           </div>
           <p className="mt-3 text-center text-sm font-semibold text-blue-950">
-            Epson EcoTank &amp; L3150 / L3250 Serisi Teknik Servis
+            Epson EcoTank &amp; L-Serisi Teknik Servis
           </p>
         </div>
       </div>
