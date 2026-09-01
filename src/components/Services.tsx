@@ -48,8 +48,8 @@ export default function Services() {
             Yazıcınız İçin Uçtan Uca Teknik Servis
           </p>
           <p className="mt-4 text-lg text-slate-600">
-            Epson yetkili servis standartlarında, orijinal parça garantili
-            onarım ve bakım hizmetleri sunuyoruz.
+            Ankara Epson yetkili servis standartlarında, orijinal parça
+            garantili onarım ve bakım hizmetleri sunuyoruz.
           </p>
         </div>
 

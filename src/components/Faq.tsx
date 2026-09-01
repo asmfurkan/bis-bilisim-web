@@ -29,13 +29,35 @@ const faqs = [
     answer:
       "Ev ve ofis tipi mürekkep tanklı yazıcılardan kurumsal çok fonksiyonlu yazıcılara, tarayıcılara ve etiket yazıcılarına kadar geniş bir Epson ürün yelpazesine teknik servis desteği sağlıyoruz.",
   },
+  {
+    question: "Ankara'nın hangi bölgelerine Epson yetkili servis hizmeti veriyorsunuz?",
+    answer:
+      "Çankaya/Öveçler'deki servis merkezimizden başta olmak üzere Ankara genelinde; Öveçler, Bahçelievler, Kızılay, Dikmen, Balgat ve çevre ilçeler dahil tüm Ankara'ya Epson yetkili servis hizmeti sunuyoruz.",
+  },
 ];
+
+const FAQ_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((faq) => ({
+    "@type": "Question",
+    name: faq.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: faq.answer,
+    },
+  })),
+};
 
 export default function Faq() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
     <section id="sss" className="scroll-mt-24 bg-white py-24 sm:py-32">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSON_LD) }}
+      />
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-base font-semibold uppercase tracking-wide text-blue-800">

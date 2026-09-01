@@ -21,11 +21,11 @@ export default function Hero() {
         <div className="max-w-2xl">
           <div className="animate-fade-in-up mb-6 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-md">
             <BadgeCheck className="h-4 w-4 text-amber-400" />
-            Epson Yetkili Servis
+            Ankara Epson Yetkili Servis
           </div>
 
           <h1 className="animate-fade-in-up text-4xl font-extrabold leading-tight tracking-tight text-white [animation-delay:100ms] sm:text-5xl">
-            BİS Bilişim — Epson Yetkili Servis &amp; Yazıcı Çözümleri
+            Ankara Epson Yetkili Servisi — BİS Bilişim
           </h1>
 
           <p className="animate-fade-in-up mt-6 max-w-xl text-lg leading-8 text-blue-100 [animation-delay:200ms]">

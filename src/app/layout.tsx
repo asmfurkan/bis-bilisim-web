@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 const SITE_URL = "https://www.bisbilisim.com.tr";
-const SITE_TITLE = "BİS Bilişim Teknolojileri | Ankara Epson Yetkili Servisi";
+const SITE_TITLE = "Ankara Epson Yetkili Servisi | BİS Bilişim Teknolojileri";
 const SITE_DESCRIPTION =
   "Ankara Epson Yetkili Servisi BİS Bilişim Teknolojileri. Öveçler'deki servisimizde Epson yazıcı tamiri, Epson L3150, L3250, EcoTank teknik servis, satış ve kurumsal bilişim çözümleri sunuyoruz.";
 
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     url: SITE_URL,
-    siteName: "BİS Bilişim",
+    siteName: "BİS Bilişim - Epson Yetkili Servis",
     locale: "tr_TR",
     type: "website",
     images: [
@@ -86,15 +86,42 @@ const LOCAL_BUSINESS_JSON_LD = {
     addressRegion: "Ankara",
     addressCountry: "TR",
   },
-  areaServed: "Ankara",
+  areaServed: [
+    "Çankaya",
+    "Öveçler",
+    "Bahçelievler",
+    "Kızılay",
+    "Dikmen",
+    "Balgat",
+    "Ankara",
+  ],
   priceRange: "$$",
+  openingHoursSpecification: [
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      opens: "09:00",
+      closes: "18:00",
+    },
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Saturday"],
+      opens: "09:00",
+      closes: "14:00",
+    },
+  ],
 };
 
 const SITE_NAME_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "BİS Bilişim",
-  alternateName: ["BİS Bilişim Teknolojileri", "BIS Bilisim"],
+  name: "BİS Bilişim - Epson Yetkili Servis",
+  alternateName: [
+    "BİS Bilişim",
+    "BİS Bilişim Teknolojileri",
+    "BIS Bilisim",
+    "Bis Bilisim Epson Yetkili Servis",
+  ],
   url: SITE_URL,
 };
 
