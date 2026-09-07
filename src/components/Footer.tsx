@@ -1,12 +1,13 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Briefcase, Send, Camera, ThumbsUp } from "lucide-react";
 import { CONTACT } from "@/lib/contact";
 
 const quickLinks = [
-  { label: "Hizmetlerimiz", href: "#hizmetler" },
-  { label: "Hakkımızda", href: "#hakkimizda" },
-  { label: "Süreç", href: "#surec" },
-  { label: "İletişim", href: "#iletisim" },
+  { label: "Hizmetlerimiz", href: "/#hizmetler" },
+  { label: "Hakkımızda", href: "/#hakkimizda" },
+  { label: "Süreç", href: "/#surec" },
+  { label: "İletişim", href: "/#iletisim" },
 ];
 
 const socials = [
@@ -26,7 +27,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-6 py-14 lg:px-8">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <a href="#top" className="group flex items-center transition-transform group-hover:scale-105">
+            <Link href="/" className="group flex items-center transition-transform group-hover:scale-105">
               <Image
                 src="/bisbilisim-seffaflogo.png"
                 alt="BİS Bilişim Teknolojileri"
@@ -34,7 +35,7 @@ export default function Footer() {
                 height={159}
                 className="h-10 w-auto"
               />
-            </a>
+            </Link>
             <p className="mt-4 max-w-xs text-sm leading-6 text-slate-500">
               Epson yetkili servis güvencesiyle yazıcı, tarayıcı ve kurumsal
               baskı sistemleriniz için profesyonel teknik destek sağlıyoruz.
@@ -46,12 +47,12 @@ export default function Footer() {
             <ul className="mt-4 space-y-3">
               {quickLinks.map((link) => (
                 <li key={link.label}>
-                  <a
+                  <Link
                     href={link.href}
                     className="inline-block text-sm text-slate-500 transition-all hover:translate-x-0.5 hover:text-blue-800"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

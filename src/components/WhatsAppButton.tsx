@@ -1,7 +1,16 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 import { CONTACT } from "@/lib/contact";
 
 export default function WhatsAppButton() {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith("/yonetim")) {
+    return null;
+  }
+
   return (
     <a
       href={CONTACT.whatsappHref}
