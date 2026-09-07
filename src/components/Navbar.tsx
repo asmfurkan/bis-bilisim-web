@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, X, Phone } from "lucide-react";
+import { Menu, X, Phone, Wrench } from "lucide-react";
 import { CONTACT } from "@/lib/contact";
 
 const navLinks = [
@@ -49,8 +49,9 @@ export default function Navbar() {
               <Link
                 key={link.label}
                 href={link.href}
-                className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
               >
+                <Wrench className="h-4 w-4" strokeWidth={2.25} />
                 {link.label}
               </Link>
             ) : (
@@ -103,10 +104,11 @@ export default function Navbar() {
                 onClick={() => setOpen(false)}
                 className={
                   link.highlight
-                    ? "rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+                    ? "flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
                     : "rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-800"
                 }
               >
+                {link.highlight && <Wrench className="h-4 w-4" strokeWidth={2.25} />}
                 {link.label}
               </Link>
             ))}
