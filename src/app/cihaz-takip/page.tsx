@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: "Cihaz Servis Takip | BİS Bilişim Teknolojileri",
   description:
     "Takip numaranız veya telefon numaranızla cihazınızın servis durumunu anında sorgulayın.",
-  robots: { index: false, follow: false },
+  robots: { index: true, follow: true },
 };
 
 export default function CihazTakipPage() {
