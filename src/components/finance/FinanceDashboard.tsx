@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import InvoiceImportModal from "@/components/finance/InvoiceImportModal";
 import {
   AlertTriangle,
   Banknote,
+  FileSpreadsheet,
   Check,
   Loader2,
   LogOut,
@@ -327,6 +329,7 @@ export default function FinanceDashboard() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("hepsi");
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -434,6 +437,14 @@ export default function FinanceDashboard() {
             <Plus className="h-4 w-4" />
             Yeni Kayıt
           </button>
+          <button
+            type="button"
+            onClick={() => setImporting(true)}
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Fatura Yükle (.xlsx / .csv)
+          </button>
         </div>
 
         <div className="mt-5 flex flex-col gap-4">
@@ -468,6 +479,7 @@ export default function FinanceDashboard() {
             ))}
         </div>
       </div>
+      {importing && <InvoiceImportModal onClose={() => setImporting(false)} onImported={load} />}
     </div>
   );
 }
