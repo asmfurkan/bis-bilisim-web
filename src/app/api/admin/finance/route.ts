@@ -15,7 +15,7 @@ export async function GET() {
       .order("created_at", { ascending: false });
     if (error) {
       console.error("Finans API Gerçek Hata:", error);
-      return fail("Kayıtlar alınamadı.");
+      return NextResponse.json({ success: false, error: error.message, details: error }, { status: 500 });
     }
     const payments = await fetchPayments(data.map((r) => r.id));
     return NextResponse.json({
@@ -24,7 +24,10 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Finans API Gerçek Hata:", error);
-    return fail("Beklenmeyen bir hata oluştu.");
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : String(error), details: error },
+      { status: 500 }
+    );
   }
 }
 
