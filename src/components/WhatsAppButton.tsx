@@ -7,7 +7,7 @@ import { CONTACT } from "@/lib/contact";
 export default function WhatsAppButton() {
   const pathname = usePathname();
 
-  if (pathname?.startsWith("/yonetim")) {
+  if (pathname?.startsWith("/servis") || pathname?.startsWith("/finans")) {
     return null;
   }
 

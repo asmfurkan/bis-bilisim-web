@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Save, Phone, Hash } from "lucide-react";
+import { useState, type FormEvent } from "react";
+import { Loader2, Save, Phone, Hash, Wallet, Check } from "lucide-react";
 import { DEVICE_STATUSES, DEVICE_STATUS_LABELS, type AdminDevice, type DeviceStatus } from "@/lib/devices";
 
 const STATUS_BADGE_CLASSES: Record<DeviceStatus, string> = {
@@ -23,6 +23,34 @@ function DeviceRow({
   const [note, setNote] = useState(device.serviceNote ?? "");
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [financeOpen, setFinanceOpen] = useState(false);
+  const [financeBusy, setFinanceBusy] = useState(false);
+  const [financeMsg, setFinanceMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function handleAddToFinance(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const amount = new FormData(event.currentTarget).get("amount");
+    setFinanceBusy(true);
+    setFinanceMsg(null);
+    try {
+      const response = await fetch("/api/admin/finance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deviceId: device.id, amount }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setFinanceMsg({ ok: true, text: "Finans tablosuna borç olarak eklendi." });
+        setFinanceOpen(false);
+      } else {
+        setFinanceMsg({ ok: false, text: result.error || "Eklenemedi." });
+      }
+    } catch {
+      setFinanceMsg({ ok: false, text: "Bağlantı hatası oluştu." });
+    } finally {
+      setFinanceBusy(false);
+    }
+  }
 
   async function handleSave(nextStatus: DeviceStatus, nextNote: string) {
     setSaving(true);
@@ -106,6 +134,47 @@ function DeviceRow({
           Notu Kaydet
         </button>
       </div>
+
+      {(device.status === "hazir" || device.status === "teslim_edildi") && (
+        <div className="mt-3">
+          {!financeOpen && (
+            <button
+              type="button"
+              onClick={() => setFinanceOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+            >
+              <Wallet className="h-3.5 w-3.5" />
+              Finansa / Borca Ekle
+            </button>
+          )}
+          {financeOpen && (
+            <form onSubmit={handleAddToFinance} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                name="amount"
+                required
+                autoFocus
+                inputMode="decimal"
+                placeholder="Servis tutarı (₺)"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100 sm:w-48"
+              />
+              <button
+                type="submit"
+                disabled={financeBusy}
+                className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {financeBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                Borç Kaydı Oluştur
+              </button>
+              <button type="button" onClick={() => setFinanceOpen(false)} className="text-xs font-medium text-slate-500 hover:text-slate-900">
+                Vazgeç
+              </button>
+            </form>
+          )}
+          {financeMsg && (
+            <p className={`mt-1.5 text-xs ${financeMsg.ok ? "text-emerald-700" : "text-red-600"}`}>{financeMsg.text}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

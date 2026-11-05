@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Loader2, AlertCircle } from "lucide-react";
 
-export default function AdminLogin() {
+export default function AdminLogin({ title = "Servis Paneli" }: { title?: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -43,7 +43,7 @@ export default function AdminLogin() {
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-800">
           <Lock className="h-6 w-6" />
         </div>
-        <h1 className="mt-5 text-xl font-bold text-slate-900">Yönetim Paneli</h1>
+        <h1 className="mt-5 text-xl font-bold text-slate-900">{title}</h1>
         <p className="mt-1 text-sm text-slate-500">Devam etmek için erişim anahtarını girin.</p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
