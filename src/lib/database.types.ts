@@ -15,6 +15,10 @@ export interface Database {
           serial_no: string | null;
           complaint: string;
           service_note: string | null;
+          customer_address: string | null;
+          delivery_type: string;
+          cargo_tracking_no: string | null;
+          cargo_fee: number | null;
           status: DeviceStatus;
           created_at: string;
           updated_at: string;
@@ -28,6 +32,10 @@ export interface Database {
           serial_no?: string | null;
           complaint: string;
           service_note?: string | null;
+          customer_address?: string | null;
+          delivery_type?: string;
+          cargo_tracking_no?: string | null;
+          cargo_fee?: number | null;
           status?: DeviceStatus;
           created_at?: string;
           updated_at?: string;
@@ -41,6 +49,10 @@ export interface Database {
           serial_no?: string | null;
           complaint?: string;
           service_note?: string | null;
+          customer_address?: string | null;
+          delivery_type?: string;
+          cargo_tracking_no?: string | null;
+          cargo_fee?: number | null;
           status?: DeviceStatus;
           created_at?: string;
           updated_at?: string;

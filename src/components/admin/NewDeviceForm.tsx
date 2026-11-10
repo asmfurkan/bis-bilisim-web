@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Loader2, AlertCircle, CheckCircle2, PlusCircle } from "lucide-react";
-import { POPULAR_EPSON_MODELS } from "@/lib/devices";
+import { DEFAULT_DELIVERY_TYPE, DELIVERY_TYPES, POPULAR_EPSON_MODELS } from "@/lib/devices";
 import type { AdminDevice } from "@/lib/devices";
 
 export default function NewDeviceForm({ onCreated }: { onCreated: (device: AdminDevice) => void }) {
@@ -26,6 +26,10 @@ export default function NewDeviceForm({ onCreated }: { onCreated: (device: Admin
       model: formData.get("model"),
       serialNo: formData.get("serialNo"),
       complaint: formData.get("complaint"),
+      customerAddress: formData.get("customerAddress"),
+      deliveryType: formData.get("deliveryType"),
+      cargoTrackingNo: formData.get("cargoTrackingNo"),
+      cargoFee: formData.get("cargoFee"),
     };
 
     try {
@@ -140,6 +144,34 @@ export default function NewDeviceForm({ onCreated }: { onCreated: (device: Admin
             maxLength={1000}
             className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100"
           />
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            Müşteri Adresi <span className="font-normal text-slate-400">(kargo / teslimat)</span>
+          </label>
+          <textarea name="customerAddress" rows={2} maxLength={500} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100 resize-none" />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Teslim Eden / Kargo Firması</label>
+            <select name="deliveryType" defaultValue={DEFAULT_DELIVERY_TYPE} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100">
+              {DELIVERY_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Kargo Takip No</label>
+            <input name="cargoTrackingNo" type="text" maxLength={60} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Kargo Ücreti (TL)</label>
+            <input name="cargoFee" type="number" min="0" step="0.01" inputMode="decimal" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100" />
+          </div>
         </div>
 
         {error && (

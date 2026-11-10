@@ -67,7 +67,39 @@ export interface AdminDevice {
   serialNo: string | null;
   complaint: string;
   serviceNote: string | null;
+  customerAddress: string | null;
+  deliveryType: string;
+  cargoTrackingNo: string | null;
+  cargoFee: number | null;
   status: DeviceStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+export const DELIVERY_TYPES = [
+  "Yurtiçi Kargo",
+  "Elden Teslim",
+  "Aras Kargo",
+  "Sürat Kargo",
+  "MNG Kargo",
+  "Diğer",
+] as const;
+
+export const DEFAULT_DELIVERY_TYPE: string = DELIVERY_TYPES[0];
+
+/** Kargo firmasına göre takip sorgulama linki; takip no yoksa veya firma desteklenmiyorsa null. */
+export function cargoTrackingUrl(deliveryType: string, trackingNo: string | null) {
+  const no = trackingNo?.trim();
+  if (!no) return null;
+  const q = encodeURIComponent(no);
+  switch (deliveryType) {
+    case "Yurtiçi Kargo":
+      return `https://www.yurticikargo.com/tr/online-servisler/gonderi-sorgula?code=${q}`;
+    case "Aras Kargo":
+      return `https://kargotakip.araskargo.com.tr/mainpage.aspx?code=${q}`;
+    case "Sürat Kargo":
+      return `https://suratkargo.com.tr/KargoTakip/?kargotakipno=${q}`;
+    default:
+      return null;
+  }
 }

@@ -23,6 +23,10 @@ create table if not exists public.devices (
   serial_no text,
   complaint text not null,
   service_note text,
+  customer_address text,
+  delivery_type text not null default 'Yurtiçi Kargo',
+  cargo_tracking_no text,
+  cargo_fee numeric(10,2),
   status text not null default 'kayit_alindi'
     check (status in ('kayit_alindi', 'ariza_tespiti', 'onarimda', 'hazir', 'teslim_edildi')),
   created_at timestamptz not null default now(),

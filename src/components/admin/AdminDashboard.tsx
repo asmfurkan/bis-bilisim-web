@@ -47,7 +47,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-[70vh] bg-slate-50 py-16">
-      <div className="mx-auto max-w-5xl px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Servis Paneli</h1>
           <button

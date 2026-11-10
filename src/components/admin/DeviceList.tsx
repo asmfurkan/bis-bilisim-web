@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { Loader2, Save, Phone, Hash, Wallet, Check } from "lucide-react";
-import { DEVICE_STATUSES, DEVICE_STATUS_LABELS, type AdminDevice, type DeviceStatus } from "@/lib/devices";
+import { Fragment, useState, type FormEvent } from "react";
+import { Loader2, Save, Wallet, Check, ChevronDown, ChevronRight, Truck, ExternalLink } from "lucide-react";
+import {
+  DEVICE_STATUSES,
+  DEVICE_STATUS_LABELS,
+  cargoTrackingUrl,
+  type AdminDevice,
+  type DeviceStatus,
+} from "@/lib/devices";
+import { formatTRY } from "@/lib/finance";
 
 const STATUS_BADGE_CLASSES: Record<DeviceStatus, string> = {
   kayit_alindi: "bg-slate-100 text-slate-700",
@@ -12,13 +19,37 @@ const STATUS_BADGE_CLASSES: Record<DeviceStatus, string> = {
   teslim_edildi: "bg-blue-50 text-blue-800",
 };
 
-function DeviceRow({
+function CargoNo({ device }: { device: AdminDevice }) {
+  if (!device.cargoTrackingNo) return null;
+  const url = cargoTrackingUrl(device.deliveryType, device.cargoTrackingNo);
+  if (!url) return <div className="text-[11px] text-slate-500">{device.cargoTrackingNo}</div>;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Kargo sorgula"
+      className="flex items-center gap-1 text-[11px] font-medium text-blue-800 hover:underline"
+    >
+      {device.cargoTrackingNo}
+      <span className="inline-flex items-center gap-0.5 rounded bg-blue-50 px-1 py-px text-[10px] font-semibold">
+        Sorgula <ExternalLink className="h-2.5 w-2.5" />
+      </span>
+    </a>
+  );
+}
+
+const detailInput =
+  "rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-100";
+
+function DeviceTableRow({
   device,
   onUpdated,
 }: {
   device: AdminDevice;
   onUpdated: (device: AdminDevice) => void;
 }) {
+  const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<DeviceStatus>(device.status);
   const [note, setNote] = useState(device.serviceNote ?? "");
   const [saving, setSaving] = useState(false);
@@ -70,112 +101,157 @@ function DeviceRow({
     }
   }
 
+  const canFinance = device.status === "hazir" || device.status === "teslim_edildi";
+
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-800">
-              <Hash className="h-3 w-3" />
-              {device.trackingCode}
-            </span>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_BADGE_CLASSES[device.status]}`}>
-              {DEVICE_STATUS_LABELS[device.status]}
-            </span>
-          </div>
-          <p className="mt-2 text-sm font-semibold text-slate-900">{device.customerName}</p>
-          <p className="flex items-center gap-1 text-xs text-slate-500">
-            <Phone className="h-3 w-3" />
-            {device.phone}
-          </p>
-          <p className="mt-1 text-sm text-slate-700">
+    <Fragment>
+      <tr className="border-t border-slate-100 align-middle hover:bg-slate-50/70">
+        <td className="px-2 py-1.5">
+          <select
+            value={status}
+            aria-label="Durum"
+            onChange={(event) => {
+              const next = event.target.value as DeviceStatus;
+              setStatus(next);
+              handleSave(next, note);
+            }}
+            className={`rounded-full border-0 px-2 py-0.5 text-xs font-semibold outline-none ${STATUS_BADGE_CLASSES[status]}`}
+          >
+            {DEVICE_STATUSES.map((value) => (
+              <option key={value} value={value}>
+                {DEVICE_STATUS_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </td>
+        <td className="px-2 py-1.5 whitespace-nowrap text-slate-500">
+          {new Date(device.createdAt).toLocaleDateString("tr-TR")}
+        </td>
+        <td className="px-2 py-1.5 font-bold whitespace-nowrap text-blue-800">{device.trackingCode}</td>
+        <td className="px-2 py-1.5">
+          <div className="font-medium text-slate-900">{device.customerName}</div>
+          <div className="text-[11px] text-slate-500">{device.phone}</div>
+        </td>
+        <td className="max-w-[16rem] px-2 py-1.5">
+          <div className="truncate text-slate-800" title={device.model}>
             {device.model}
-            {device.serialNo ? ` · S/N: ${device.serialNo}` : ""}
-          </p>
-          <p className="mt-1 text-sm text-slate-500">{device.complaint}</p>
-        </div>
+            {device.serialNo ? ` · ${device.serialNo}` : ""}
+          </div>
+          <div className="truncate text-[11px] text-slate-500" title={device.complaint}>
+            {device.complaint}
+          </div>
+        </td>
+        <td className="px-2 py-1.5 whitespace-nowrap">
+          <div className="flex items-center gap-1 text-slate-700">
+            <Truck className="h-3 w-3 text-slate-400" />
+            {device.deliveryType}
+          </div>
+          <CargoNo device={device} />
+        </td>
+        <td className="px-2 py-1.5 text-right whitespace-nowrap">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="inline-flex items-center gap-0.5 rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-200"
+          >
+            {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            Detay
+          </button>
+        </td>
+      </tr>
 
-        <select
-          value={status}
-          onChange={(event) => {
-            const next = event.target.value as DeviceStatus;
-            setStatus(next);
-            handleSave(next, note);
-          }}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100"
-        >
-          {DEVICE_STATUSES.map((value) => (
-            <option key={value} value={value}>
-              {DEVICE_STATUS_LABELS[value]}
-            </option>
-          ))}
-        </select>
-      </div>
+      {open && (
+        <tr className="bg-slate-50/60">
+          <td colSpan={7} className="px-4 py-3">
+            <div className="grid gap-3 text-xs text-slate-700 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p>
+                  <span className="font-semibold">Şikayet:</span> {device.complaint}
+                </p>
+                <p>
+                  <span className="font-semibold">Adres:</span> {device.customerAddress || "—"}
+                </p>
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold">Kargo takip no:</span>
+                  {device.cargoTrackingNo ? <CargoNo device={device} /> : "—"}
+                </div>
+                <p>
+                  <span className="font-semibold">Kargo ücreti:</span>{" "}
+                  {device.cargoFee !== null ? formatTRY(device.cargoFee) : "—"}
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <textarea
+                    value={note}
+                    onChange={(event) => {
+                      setNote(event.target.value);
+                      setDirty(true);
+                    }}
+                    rows={2}
+                    maxLength={1000}
+                    placeholder="Servis notu ekleyin..."
+                    className={`${detailInput} w-full resize-none`}
+                  />
+                  <button
+                    type="button"
+                    disabled={!dirty || saving}
+                    onClick={() => handleSave(status, note)}
+                    className="flex shrink-0 items-center gap-1 self-start rounded-md bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                    Kaydet
+                  </button>
+                </div>
 
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <textarea
-          value={note}
-          onChange={(event) => {
-            setNote(event.target.value);
-            setDirty(true);
-          }}
-          rows={2}
-          maxLength={1000}
-          placeholder="Servis notu ekleyin..."
-          className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100"
-        />
-        <button
-          type="button"
-          disabled={!dirty || saving}
-          onClick={() => handleSave(status, note)}
-          className="flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Notu Kaydet
-        </button>
-      </div>
-
-      {(device.status === "hazir" || device.status === "teslim_edildi") && (
-        <div className="mt-3">
-          {!financeOpen && (
-            <button
-              type="button"
-              onClick={() => setFinanceOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-            >
-              <Wallet className="h-3.5 w-3.5" />
-              Finansa / Borca Ekle
-            </button>
-          )}
-          {financeOpen && (
-            <form onSubmit={handleAddToFinance} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <input
-                name="amount"
-                required
-                autoFocus
-                inputMode="decimal"
-                placeholder="Servis tutarı (₺)"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100 sm:w-48"
-              />
-              <button
-                type="submit"
-                disabled={financeBusy}
-                className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
-              >
-                {financeBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                Borç Kaydı Oluştur
-              </button>
-              <button type="button" onClick={() => setFinanceOpen(false)} className="text-xs font-medium text-slate-500 hover:text-slate-900">
-                Vazgeç
-              </button>
-            </form>
-          )}
-          {financeMsg && (
-            <p className={`mt-1.5 text-xs ${financeMsg.ok ? "text-emerald-700" : "text-red-600"}`}>{financeMsg.text}</p>
-          )}
-        </div>
+                {canFinance && !financeOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setFinanceOpen(true)}
+                    className="flex w-fit items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                  >
+                    <Wallet className="h-3 w-3" />
+                    Finansa / Borca Ekle
+                  </button>
+                )}
+                {canFinance && financeOpen && (
+                  <form onSubmit={handleAddToFinance} className="flex items-center gap-2">
+                    <input
+                      name="amount"
+                      required
+                      autoFocus
+                      inputMode="decimal"
+                      placeholder="Servis tutarı (₺)"
+                      className={`${detailInput} w-40`}
+                    />
+                    <button
+                      type="submit"
+                      disabled={financeBusy}
+                      className="flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                    >
+                      {financeBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                      Borç Kaydı Oluştur
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFinanceOpen(false)}
+                      className="text-[11px] font-medium text-slate-500 hover:text-slate-900"
+                    >
+                      Vazgeç
+                    </button>
+                  </form>
+                )}
+                {financeMsg && (
+                  <p className={`text-[11px] ${financeMsg.ok ? "text-emerald-700" : "text-red-600"}`}>
+                    {financeMsg.text}
+                  </p>
+                )}
+              </div>
+            </div>
+          </td>
+        </tr>
       )}
-    </div>
+    </Fragment>
   );
 }
 
@@ -198,7 +274,7 @@ export default function DeviceList({
   onDeviceUpdated: (device: AdminDevice) => void;
 }) {
   return (
-    <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xl shadow-slate-900/5 sm:p-8">
+    <div className="rounded-3xl border border-slate-100 bg-white p-4 shadow-xl shadow-slate-900/5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-slate-900">Kayıtlı Cihazlar</h2>
         <div className="flex flex-wrap gap-2">
@@ -207,10 +283,8 @@ export default function DeviceList({
               key={item.value}
               type="button"
               onClick={() => onFilterChange(item.value)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                filter === item.value
-                  ? "bg-blue-800 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                filter === item.value ? "bg-blue-800 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               {item.label}
@@ -219,21 +293,34 @@ export default function DeviceList({
         </div>
       </div>
 
-      <div className="mt-5 flex flex-col gap-4">
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[56rem] text-left text-xs">
+          <thead>
+            <tr className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+              <th className="px-2 py-1.5">Durum</th>
+              <th className="px-2 py-1.5">Tarih</th>
+              <th className="px-2 py-1.5">Fiş No</th>
+              <th className="px-2 py-1.5">Müşteri</th>
+              <th className="px-2 py-1.5">Cihaz / Arıza</th>
+              <th className="px-2 py-1.5">Kargo</th>
+              <th className="px-2 py-1.5 text-right">İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            {!loading &&
+              devices.map((device) => (
+                <DeviceTableRow key={device.id} device={device} onUpdated={onDeviceUpdated} />
+              ))}
+          </tbody>
+        </table>
         {loading && (
           <div className="flex items-center justify-center py-10 text-slate-400">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         )}
-
         {!loading && devices.length === 0 && (
           <p className="py-10 text-center text-sm text-slate-500">Kayıt bulunamadı.</p>
         )}
-
-        {!loading &&
-          devices.map((device) => (
-            <DeviceRow key={device.id} device={device} onUpdated={onDeviceUpdated} />
-          ))}
       </div>
     </div>
   );
