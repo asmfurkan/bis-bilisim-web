@@ -97,6 +97,8 @@ export interface Database {
           due_date?: string | null;
         };
         Update: {
+          title?: string | null;
+          currency?: string | null;
           usd_amount?: number | null;
           customer_name?: string | null;
           customer_phone?: string | null;

@@ -22,10 +22,27 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/fina
     if (body?.description !== undefined) updates.description = str(body.description) || null;
     if (body?.note !== undefined) updates.notes = str(body.note) || null;
     if (body?.dueDate !== undefined) updates.due_date = str(body.dueDate) || null;
+    if (body?.title !== undefined) updates.title = str(body.title) || null;
+
+    let amount: number | null = null;
     if (body?.amount !== undefined) {
-      const amount = parseAmount(body.amount);
+      amount = parseAmount(body.amount);
       if (amount === null) return fail("Geçerli bir tutar girin.", 400);
       updates.amount = amount;
+    }
+
+    // Para birimi: USD -> usd_amount = girilen dolar tutarı (TL karşılığı güncel kurla dinamik hesaplanır),
+    // TRY -> usd_amount = 0. Tutar kolonu seçilen para biriminde tutulur.
+    const currencyRaw = str(body?.currency);
+    const nextCurrency = currencyRaw === "USD" || currencyRaw === "TRY" ? currencyRaw : null;
+    if (nextCurrency) {
+      updates.currency = nextCurrency;
+      if (amount === null) {
+        const { data: cur } = await getSupabaseAdmin().from("transactions").select("amount").eq("id", id).single();
+        amount = cur ? Number(cur.amount) : null;
+      }
+      updates.usd_amount = nextCurrency === "USD" ? amount : 0;
+    } else if (amount !== null) {
       const { data: cur } = await getSupabaseAdmin().from("transactions").select("currency").eq("id", id).single();
       if (cur?.currency === "USD") updates.usd_amount = amount;
     }
@@ -35,7 +52,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/fina
     const { error } = await supabase.from("transactions").update(updates).eq("id", id);
     if (error) {
       console.error("Finans API Gerçek Hata:", error);
-      return fail("Kayıt güncellenemedi.");
+      return fail(`Kayıt güncellenemedi: ${error.message}`);
     }
     if (updates.customer_name) await ensureCustomers([{ name: updates.customer_name, phone: updates.customer_phone }]);
     return NextResponse.json({ success: true, receivable: await fetchReceivable(id) });

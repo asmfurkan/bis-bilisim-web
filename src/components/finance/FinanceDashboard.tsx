@@ -153,6 +153,15 @@ function ReceivableForm({
           <option value="borc">− Verecek — para vereceğiz / ödeyeceğiz (hesaptan düşer)</option>
         </select>
       )}
+      <input
+        name="title"
+        type="text"
+        defaultValue={initial?.title ?? ""}
+        maxLength={200}
+        placeholder="Belge / Fatura No — Örn: BMV2026000000037"
+        aria-label="Belge / Fatura No"
+        className={`${inputClass} sm:col-span-2`}
+      />
       <CustomerCombobox
         name="customerName"
         maxLength={200}
@@ -168,19 +177,18 @@ function ReceivableForm({
           required
           inputMode="decimal"
           defaultValue={initial?.amount}
-          placeholder={`Tutar (${initial?.currency === "USD" ? "$" : "₺"})`}
+          placeholder="Tutar"
           className={`${inputClass} min-w-0 flex-1`}
         />
-        {initial ? (
-          <span className="flex items-center rounded-lg bg-slate-100 px-3 text-sm font-semibold text-slate-600">
-            {initial.currency === "USD" ? "$" : "₺"}
-          </span>
-        ) : (
-          <select name="currency" defaultValue="TRY" aria-label="Para birimi" className={inputClass.replace("w-full", "w-28") + " shrink-0"}>
-            <option value="TRY">TRY ₺</option>
-            <option value="USD">USD $</option>
-          </select>
-        )}
+        <select
+          name="currency"
+          defaultValue={initial?.currency ?? "TRY"}
+          aria-label="Para birimi"
+          className={inputClass.replace("w-full", "w-28") + " shrink-0"}
+        >
+          <option value="TRY">TRY ₺</option>
+          <option value="USD">USD $</option>
+        </select>
       </div>
       <input name="dueDate" type="date" defaultValue={initial?.dueDate ?? ""} className={inputClass} aria-label="Vade tarihi" />
       <input name="note" defaultValue={initial?.note ?? ""} placeholder="Not" className={inputClass} />
