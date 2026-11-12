@@ -11,7 +11,6 @@ create table if not exists public.customers (
 create table if not exists public.exchange_rates (
   currency text primary key,
   rate numeric(12,4) not null,
-  source text,
   updated_at timestamptz not null default now()
 );
 

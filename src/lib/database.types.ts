@@ -135,9 +135,9 @@ export interface Database {
       };
       exchange_rates: {
         Relationships: [];
-        Row: { currency: string; rate: number; source: string | null; updated_at: string };
-        Insert: { currency: string; rate: number; source?: string | null; updated_at?: string };
-        Update: { rate?: number; source?: string | null; updated_at?: string };
+        Row: { currency: string; rate: number; updated_at: string };
+        Insert: { currency: string; rate: number; updated_at?: string };
+        Update: { rate?: number; updated_at?: string };
       };
     };
     Views: Record<string, never>;

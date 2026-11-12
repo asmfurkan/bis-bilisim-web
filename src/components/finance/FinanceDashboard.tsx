@@ -606,7 +606,7 @@ export default function FinanceDashboard() {
             </p>
             {rate && (
               <p className="text-[11px] text-slate-400">
-                {rate.source} · {new Date(rate.updatedAt).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}
+                {rate.source ? `${rate.source} · ` : ""}{new Date(rate.updatedAt).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}
               </p>
             )}
             {rateMsg && <p className={`text-xs ${rateMsg.ok ? "text-emerald-700" : "text-red-600"}`}>{rateMsg.text}</p>}

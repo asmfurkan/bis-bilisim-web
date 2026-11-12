@@ -18,7 +18,7 @@ export async function GET() {
   }
   return NextResponse.json({
     success: true,
-    rate: data ? { rate: Number(data.rate), source: data.source, updatedAt: data.updated_at } : null,
+    rate: data ? { rate: Number(data.rate), source: null, updatedAt: data.updated_at } : null,
   });
 }
 
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const updatedAt = new Date().toISOString();
     const { error } = await getSupabaseAdmin()
       .from("exchange_rates")
-      .upsert({ currency: "USD", rate, source, updated_at: updatedAt }, { onConflict: "currency" });
+      .upsert({ currency: "USD", rate, updated_at: updatedAt }, { onConflict: "currency" });
     if (error) {
       console.error("Kur kaydedilemedi:", error);
       return fail(`Kur kaydedilemedi: ${error.message}`);
