@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import CustomerCombobox from "@/components/CustomerCombobox";
+import NetIncomeTable from "@/components/finance/NetIncomeTable";
 import CustomerStatementDrawer from "@/components/finance/CustomerStatementDrawer";
 import {
   formatMoney,
@@ -157,14 +158,14 @@ function ReceivableForm({
           inputMode="decimal"
           defaultValue={initial?.amount}
           placeholder={`Tutar (${initial?.currency === "USD" ? "$" : "₺"})`}
-          className={inputClass}
+          className={`${inputClass} min-w-0 flex-1`}
         />
         {initial ? (
           <span className="flex items-center rounded-lg bg-slate-100 px-3 text-sm font-semibold text-slate-600">
             {initial.currency === "USD" ? "$" : "₺"}
           </span>
         ) : (
-          <select name="currency" defaultValue="TRY" aria-label="Para birimi" className={`${inputClass} w-28 shrink-0`}>
+          <select name="currency" defaultValue="TRY" aria-label="Para birimi" className={inputClass.replace("w-full", "w-28") + " shrink-0"}>
             <option value="TRY">TRY ₺</option>
             <option value="USD">USD $</option>
           </select>
@@ -642,6 +643,8 @@ export default function FinanceDashboard() {
           <SummaryCard label="Piyasada Kalan Alacak" value={totals.outstanding} icon={<Banknote className="h-5 w-5" />} tone="bg-blue-50 text-blue-800" />
           <SummaryCard label="Vadesi Geçenler" value={totals.overdue} icon={<AlertTriangle className="h-5 w-5" />} tone="bg-red-50 text-red-700" />
         </div>
+
+        <NetIncomeTable items={items} rate={rate?.rate ?? null} />
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
