@@ -142,6 +142,17 @@ function ReceivableForm({
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-3 rounded-2xl border border-blue-100 bg-blue-50/40 p-5 sm:grid-cols-2">
+      {!initial && (
+        <select
+          name="type"
+          defaultValue="alacak"
+          aria-label="Kayıt türü"
+          className={`${inputClass} font-semibold sm:col-span-2`}
+        >
+          <option value="alacak">+ Alacak — müşteriden para alacağız (hesaba eklenir)</option>
+          <option value="borc">− Verecek — para vereceğiz / ödeyeceğiz (hesaptan düşer)</option>
+        </select>
+      )}
       <CustomerCombobox
         name="customerName"
         maxLength={200}
@@ -235,6 +246,14 @@ function ReceivableRow({
     event.preventDefault();
     const form = event.currentTarget;
     const data = Object.fromEntries(new FormData(form).entries());
+    const entered = Number(String(data.amount ?? "").replace(",", "."));
+    if (
+      Number.isFinite(entered) &&
+      entered > left + 0.001 &&
+      !window.confirm(`Girilen tutar kalan bakiyeden (${formatMoney(Math.max(0, left), item.currency)}) fazla. Fazla ödeme olarak kaydedilsin mi?`)
+    ) {
+      return;
+    }
     if (await run(() => api(`/api/admin/finance/${item.id}/payments`, "POST", data))) {
       setPaying(false);
       setShowLog(true);
@@ -267,7 +286,7 @@ function ReceivableRow({
     );
   }
 
-  const statusLabel = left <= 0 ? "Ödendi" : overdue ? "Vadesi Geçti" : item.paid > 0 ? "Kısmi" : "Açık";
+  const statusLabel = left <= 0 ? "Ödendi" : overdue ? "Vadesi Geçti" : item.paid > 0 ? "Kısmi Ödeme" : "Açık";
   const statusClass =
     left <= 0
       ? "bg-emerald-50 text-emerald-700"
@@ -322,23 +341,33 @@ function ReceivableRow({
         </td>
         <td className="px-2 py-1.5 text-right whitespace-nowrap">
           <div className={`text-sm font-bold ${left > 0 ? "text-slate-900" : left < 0 ? "text-sky-700" : "text-emerald-600"}`}>
-            {left > 0 ? formatMoney(left, item.currency) : left < 0 ? `${formatMoney(left, item.currency)} (alacaklı)` : "Ödendi"}
+            {left > 0
+              ? `${item.type === "borc" ? "−" : "+"}${formatMoney(left, item.currency)}`
+              : left < 0
+                ? `${formatMoney(left, item.currency)} (fazla ödeme)`
+                : "Ödendi"}
           </div>
+          {left > 0 && <div className="text-[11px] text-slate-400">kalan</div>}
           {usd && (
             <div className="text-[11px] font-medium text-slate-500">
               {rate ? `≈ ${formatTRY(toTRY(item, left !== 0 ? left : item.amount, rate))}` : "Kur girilmedi"}
             </div>
           )}
           <div className="text-[11px] text-slate-400">
-            {formatMoney(item.amount, item.currency)} · Öd. {formatMoney(paidTotal(item), item.currency)}
+            Toplam {formatMoney(item.amount, item.currency)}
           </div>
+          {paidTotal(item) > 0 && (
+            <div className="text-[11px] font-semibold text-emerald-700">
+              {item.type === "borc" ? "Ödenen" : "Tahsil edilen"}: {formatMoney(paidTotal(item), item.currency)}
+            </div>
+          )}
         </td>
         <td className="px-2 py-1.5 text-right whitespace-nowrap">
           {(
             <button
               type="button"
-              title="Tahsilat ekle"
-              aria-label="Tahsilat ekle"
+              title={item.type === "borc" ? "Ödeme ekle" : "Tahsilat ekle"}
+              aria-label={item.type === "borc" ? "Ödeme ekle" : "Tahsilat ekle"}
               onClick={() => setPaying((v) => !v)}
               className={`${iconBtn} text-emerald-700 hover:bg-emerald-50`}
             >
@@ -393,7 +422,26 @@ function ReceivableRow({
           <td colSpan={7} className="px-4 py-2">
             {paying && (
               <form onSubmit={handlePayment} className="flex flex-col gap-2 sm:flex-row">
-                <input name="amount" required inputMode="decimal" defaultValue={left > 0 ? left : ""} placeholder={`Tutar (${sym})`} className={compactInput} />
+                <input
+                  name="amount"
+                  required
+                  autoFocus
+                  inputMode="decimal"
+                  placeholder={`${item.type === "borc" ? "Ödenen" : "Tahsil edilen"} tutar (${sym})${left > 0 ? ` — kalan ${left}` : ""}`}
+                  className={compactInput}
+                />
+                {left > 0 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      const input = e.currentTarget.form?.elements.namedItem("amount");
+                      if (input instanceof HTMLInputElement) input.value = String(left);
+                    }}
+                    className="shrink-0 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-white"
+                  >
+                    Tamamı
+                  </button>
+                )}
                 <input name="note" placeholder="Not (nakit, havale...)" className={compactInput} />
                 <button
                   type="submit"
@@ -540,15 +588,19 @@ export default function FinanceDashboard() {
     let collected = 0;
     let outstanding = 0;
     let overdue = 0;
+    let payable = 0;
     const rv = rate?.rate ?? null;
     for (const r of items) {
-      if (r.type === "borc") continue;
+      if (r.type === "borc") {
+        payable += toTRY(r, Math.max(0, remaining(r)), rv);
+        continue;
+      }
       collected += toTRY(r, paidTotal(r), rv);
       const left = Math.max(0, remaining(r));
       outstanding += toTRY(r, left, rv);
       if (isOverdue(r)) overdue += toTRY(r, left, rv);
     }
-    return { collected, outstanding, overdue };
+    return { collected, outstanding, overdue, payable };
   }, [items, rate]);
 
   const visible = useMemo(() => {
@@ -638,9 +690,10 @@ export default function FinanceDashboard() {
           </button>
         </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard label="Kasa / Tahsilat" value={totals.collected} icon={<Wallet className="h-5 w-5" />} tone="bg-emerald-50 text-emerald-700" />
           <SummaryCard label="Piyasada Kalan Alacak" value={totals.outstanding} icon={<Banknote className="h-5 w-5" />} tone="bg-blue-50 text-blue-800" />
+          <SummaryCard label="Ödenecek Borç (Verecek)" value={totals.payable} icon={<Banknote className="h-5 w-5" />} tone="bg-amber-50 text-amber-700" />
           <SummaryCard label="Vadesi Geçenler" value={totals.overdue} icon={<AlertTriangle className="h-5 w-5" />} tone="bg-red-50 text-red-700" />
         </div>
 

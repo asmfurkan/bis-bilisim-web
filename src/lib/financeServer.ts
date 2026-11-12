@@ -17,7 +17,9 @@ export function toReceivable(row: TransactionRow, payments: ReceivablePayment[] 
     deviceInfo: row.device_info,
     currency: row.currency === "USD" ? "USD" : "TRY",
     amount,
-    paid: row.status === "odendi" ? Math.max(paidAmount, amount) : paidAmount,
+    // Yalnızca ödeme girişi/tutarı hiç olmayan ve elle "ödendi" işaretlenmiş eski kayıtlar tam ödenmiş sayılır;
+    // kısmi tahsilatta ödenen tutar neyse o gösterilir.
+    paid: row.status === "odendi" && paidAmount === 0 && payments.length === 0 ? amount : paidAmount,
     dueDate: row.due_date,
     note: row.notes,
     status: row.status ?? "bekliyor",
