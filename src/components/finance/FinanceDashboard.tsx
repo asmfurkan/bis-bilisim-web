@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import InvoiceImportModal from "@/components/finance/InvoiceImportModal";
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
   Banknote,
+  RefreshCw,
   FileSpreadsheet,
   Check,
   History,
@@ -19,14 +22,21 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import CustomerCombobox from "@/components/CustomerCombobox";
+import CustomerStatementDrawer from "@/components/finance/CustomerStatementDrawer";
 import {
+  formatMoney,
   formatTRY,
   isOverdue,
   paidTotal,
   remaining,
+  toTRY,
   whatsappReminderHref,
   type Receivable,
 } from "@/lib/finance";
+
+type Rate = { rate: number; source: string | null; updatedAt: string } | null;
+type SortKey = "date" | "doc" | "customer" | "amount";
 
 type Filter = "hepsi" | "acik" | "vadesi_gecen" | "odendi";
 
@@ -50,6 +60,32 @@ async function api(url: string, method: string, body?: unknown) {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   return (await response.json()) as { success: boolean; error?: string; receivable?: Receivable };
+}
+
+function SortHeader({
+  label,
+  k,
+  sort,
+  onSort,
+  right,
+}: {
+  label: string;
+  k: SortKey;
+  sort: { key: SortKey; dir: "asc" | "desc" };
+  onSort: (k: SortKey) => void;
+  right?: boolean;
+}) {
+  const active = sort.key === k;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(k)}
+      className={`inline-flex items-center gap-1 uppercase hover:text-slate-900 ${right ? "flex-row-reverse" : ""} ${active ? "text-blue-800" : ""}`}
+    >
+      {label}
+      {active && (sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+    </button>
+  );
 }
 
 function SummaryCard({
@@ -105,10 +141,35 @@ function ReceivableForm({
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-3 rounded-2xl border border-blue-100 bg-blue-50/40 p-5 sm:grid-cols-2">
-      <input name="customerName" required defaultValue={initial?.customerName} placeholder="Müşteri adı" className={inputClass} />
+      <CustomerCombobox
+        name="customerName"
+        maxLength={200}
+        defaultValue={initial?.customerName ?? ""}
+        placeholder="Müşteri ara veya yeni isim yaz"
+        className={inputClass}
+      />
       <input name="phone" required defaultValue={initial?.phone} placeholder="Telefon" className={inputClass} />
       <input name="description" defaultValue={initial?.description} placeholder="Açıklama (cihaz / hizmet)" className={inputClass} />
-      <input name="amount" required inputMode="decimal" defaultValue={initial?.amount} placeholder="Tutar (₺)" className={inputClass} />
+      <div className="flex gap-2">
+        <input
+          name="amount"
+          required
+          inputMode="decimal"
+          defaultValue={initial?.amount}
+          placeholder={`Tutar (${initial?.currency === "USD" ? "$" : "₺"})`}
+          className={inputClass}
+        />
+        {initial ? (
+          <span className="flex items-center rounded-lg bg-slate-100 px-3 text-sm font-semibold text-slate-600">
+            {initial.currency === "USD" ? "$" : "₺"}
+          </span>
+        ) : (
+          <select name="currency" defaultValue="TRY" aria-label="Para birimi" className={`${inputClass} w-28 shrink-0`}>
+            <option value="TRY">TRY ₺</option>
+            <option value="USD">USD $</option>
+          </select>
+        )}
+      </div>
       <input name="dueDate" type="date" defaultValue={initial?.dueDate ?? ""} className={inputClass} aria-label="Vade tarihi" />
       <input name="note" defaultValue={initial?.note ?? ""} placeholder="Not" className={inputClass} />
       {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
@@ -131,10 +192,14 @@ function ReceivableForm({
 
 function ReceivableRow({
   item,
+  rate,
+  onOpenCustomer,
   onChange,
   onDeleted,
 }: {
   item: Receivable;
+  rate: number | null;
+  onOpenCustomer: (name: string) => void;
   onChange: (r: Receivable) => void;
   onDeleted: (id: string) => void;
 }) {
@@ -145,6 +210,8 @@ function ReceivableRow({
   const [error, setError] = useState("");
 
   const left = remaining(item);
+  const usd = item.currency === "USD";
+  const sym = usd ? "$" : "₺";
   const overdue = isOverdue(item);
 
   async function run(action: () => Promise<{ success: boolean; error?: string; receivable?: Receivable }>) {
@@ -232,7 +299,14 @@ function ReceivableRow({
         </td>
         <td className="px-2 py-1.5 whitespace-nowrap text-slate-600">{item.title || "—"}</td>
         <td className="px-2 py-1.5">
-          <div className="font-medium text-slate-900">{item.customerName}</div>
+          <button
+            type="button"
+            onClick={() => onOpenCustomer(item.customerName)}
+            title="Cari ekstreyi aç"
+            className="text-left font-medium text-blue-800 hover:underline"
+          >
+            {item.customerName}
+          </button>
           {item.phone && <div className="text-[11px] text-slate-500">{item.phone}</div>}
         </td>
         <td className="max-w-[16rem] px-2 py-1.5">
@@ -246,15 +320,20 @@ function ReceivableRow({
           )}
         </td>
         <td className="px-2 py-1.5 text-right whitespace-nowrap">
-          <div className={`text-sm font-bold ${left > 0 ? "text-slate-900" : "text-emerald-600"}`}>
-            {left > 0 ? formatTRY(left) : "Ödendi"}
+          <div className={`text-sm font-bold ${left > 0 ? "text-slate-900" : left < 0 ? "text-sky-700" : "text-emerald-600"}`}>
+            {left > 0 ? formatMoney(left, item.currency) : left < 0 ? `${formatMoney(left, item.currency)} (alacaklı)` : "Ödendi"}
           </div>
+          {usd && (
+            <div className="text-[11px] font-medium text-slate-500">
+              {rate ? `≈ ${formatTRY(toTRY(item, left !== 0 ? left : item.amount, rate))}` : "Kur girilmedi"}
+            </div>
+          )}
           <div className="text-[11px] text-slate-400">
-            {formatTRY(item.amount)} · Öd. {formatTRY(paidTotal(item))}
+            {formatMoney(item.amount, item.currency)} · Öd. {formatMoney(paidTotal(item), item.currency)}
           </div>
         </td>
         <td className="px-2 py-1.5 text-right whitespace-nowrap">
-          {left > 0 && (
+          {(
             <button
               type="button"
               title="Tahsilat ekle"
@@ -313,7 +392,7 @@ function ReceivableRow({
           <td colSpan={7} className="px-4 py-2">
             {paying && (
               <form onSubmit={handlePayment} className="flex flex-col gap-2 sm:flex-row">
-                <input name="amount" required inputMode="decimal" defaultValue={left} placeholder="Tutar (₺)" className={compactInput} />
+                <input name="amount" required inputMode="decimal" defaultValue={left > 0 ? left : ""} placeholder={`Tutar (${sym})`} className={compactInput} />
                 <input name="note" placeholder="Not (nakit, havale...)" className={compactInput} />
                 <button
                   type="submit"
@@ -336,7 +415,7 @@ function ReceivableRow({
                       {p.note ? ` · ${p.note}` : ""}
                     </span>
                     <span className="flex items-center gap-2 font-semibold text-emerald-700">
-                      {formatTRY(p.amount)}
+                      {formatMoney(p.amount, item.currency)}
                       <button
                         type="button"
                         aria-label="Ödemeyi sil"
@@ -372,6 +451,12 @@ export default function FinanceDashboard() {
   const [filter, setFilter] = useState<Filter>("hepsi");
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "date", dir: "desc" });
+  const [statementFor, setStatementFor] = useState<string | null>(null);
+  const [rate, setRate] = useState<Rate>(null);
+  const [rateInput, setRateInput] = useState("");
+  const [rateBusy, setRateBusy] = useState(false);
+  const [rateMsg, setRateMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -394,21 +479,93 @@ export default function FinanceDashboard() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    fetch("/api/tcmb")
+      .then((res) => res.json())
+      .then((result) => {
+        if (!result.success) {
+          setRateMsg({ ok: false, text: `Kur okunamadı: ${result.error}` });
+          return;
+        }
+        setRate(result.rate);
+        // Kayıtlı kur bugüne ait değilse TCMB'den otomatik güncelle
+        const day = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Europe/Istanbul" });
+        const stale = !result.rate || day(new Date(result.rate.updatedAt)) !== day(new Date());
+        if (stale) {
+          return fetch("/api/tcmb", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          })
+            .then((res) => res.json())
+            .then((updated) => {
+              if (updated.success) {
+                setRate(updated.rate);
+                setRateMsg({ ok: true, text: "Kur TCMB'den otomatik güncellendi." });
+              } else setRateMsg({ ok: false, text: `Otomatik güncelleme başarısız: ${updated.error}` });
+            });
+        }
+      })
+      .catch(() => setRateMsg({ ok: false, text: "Kur okunamadı (bağlantı hatası)." }));
+  }, []);
+
+  async function updateRate(manual: boolean) {
+    setRateBusy(true);
+    setRateMsg(null);
+    try {
+      const response = await fetch("/api/tcmb", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(manual ? { rate: rateInput } : {}),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setRate(result.rate);
+        setRateInput("");
+        setRateMsg({ ok: true, text: `Kur güncellendi (${result.rate.source}).` });
+      } else setRateMsg({ ok: false, text: result.error || "Kur güncellenemedi." });
+    } catch {
+      setRateMsg({ ok: false, text: "Bağlantı hatası oluştu." });
+    } finally {
+      setRateBusy(false);
+    }
+  }
+
+  function toggleSort(key: SortKey) {
+    setSort((prev) => (prev.key === key ? { key, dir: prev.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
+  }
+
   const totals = useMemo(() => {
     let collected = 0;
     let outstanding = 0;
     let overdue = 0;
+    const rv = rate?.rate ?? null;
     for (const r of items) {
       if (r.type === "borc") continue;
-      collected += paidTotal(r);
-      outstanding += remaining(r);
-      if (isOverdue(r)) overdue += remaining(r);
+      collected += toTRY(r, paidTotal(r), rv);
+      const left = Math.max(0, remaining(r));
+      outstanding += toTRY(r, left, rv);
+      if (isOverdue(r)) overdue += toTRY(r, left, rv);
     }
     return { collected, outstanding, overdue };
-  }, [items]);
+  }, [items, rate]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLocaleLowerCase("tr-TR");
+    const rv = rate?.rate ?? null;
+    const dir = sort.dir === "asc" ? 1 : -1;
+    const cmp = (a: Receivable, b: Receivable) => {
+      switch (sort.key) {
+        case "date":
+          return a.createdAt.localeCompare(b.createdAt);
+        case "doc":
+          return (a.title || "").localeCompare(b.title || "", "tr", { numeric: true });
+        case "customer":
+          return a.customerName.localeCompare(b.customerName, "tr");
+        case "amount":
+          return toTRY(a, remaining(a), rv) - toTRY(b, remaining(b), rv);
+      }
+    };
     return items.filter((r) => {
       if (filter === "acik" && remaining(r) <= 0) return false;
       if (filter === "odendi" && remaining(r) > 0) return false;
@@ -418,8 +575,8 @@ export default function FinanceDashboard() {
         .join(" ")
         .toLocaleLowerCase("tr-TR")
         .includes(q);
-    });
-  }, [items, query, filter]);
+    }).sort((a, b) => cmp(a, b) * dir);
+  }, [items, query, filter, sort, rate]);
 
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
@@ -441,7 +598,46 @@ export default function FinanceDashboard() {
           </button>
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-6 flex flex-col gap-2 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <p className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">USD / TRY Kuru</p>
+            <p className="text-xl font-extrabold text-slate-900">
+              {rate ? `${rate.rate.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₺` : "Kur girilmedi"}
+            </p>
+            {rate && (
+              <p className="text-[11px] text-slate-400">
+                {rate.source} · {new Date(rate.updatedAt).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}
+              </p>
+            )}
+            {rateMsg && <p className={`text-xs ${rateMsg.ok ? "text-emerald-700" : "text-red-600"}`}>{rateMsg.text}</p>}
+          </div>
+          <input
+            value={rateInput}
+            onChange={(e) => setRateInput(e.target.value)}
+            inputMode="decimal"
+            placeholder="Elle kur (örn. 34,50)"
+            className={`${inputClass} sm:w-44`}
+          />
+          <button
+            type="button"
+            disabled={rateBusy || !rateInput.trim()}
+            onClick={() => updateRate(true)}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Kaydet
+          </button>
+          <button
+            type="button"
+            disabled={rateBusy}
+            onClick={() => updateRate(false)}
+            className="flex items-center justify-center gap-1.5 rounded-lg bg-blue-800 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-900 disabled:opacity-60"
+          >
+            {rateBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            TCMB&apos;den Çek
+          </button>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <SummaryCard label="Kasa / Tahsilat" value={totals.collected} icon={<Wallet className="h-5 w-5" />} tone="bg-emerald-50 text-emerald-700" />
           <SummaryCard label="Piyasada Kalan Alacak" value={totals.outstanding} icon={<Banknote className="h-5 w-5" />} tone="bg-blue-50 text-blue-800" />
           <SummaryCard label="Vadesi Geçenler" value={totals.overdue} icon={<AlertTriangle className="h-5 w-5" />} tone="bg-red-50 text-red-700" />
@@ -516,11 +712,11 @@ export default function FinanceDashboard() {
                 <thead className="bg-slate-50">
                   <tr className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
                     <th className="px-2 py-2">Durum</th>
-                    <th className="px-2 py-2">Tarih</th>
-                    <th className="px-2 py-2">Belge / Fiş No</th>
-                    <th className="px-2 py-2">Müşteri</th>
+                    <th className="px-2 py-2"><SortHeader label="Tarih" k="date" sort={sort} onSort={toggleSort} /></th>
+                    <th className="px-2 py-2"><SortHeader label="Belge / Fiş No" k="doc" sort={sort} onSort={toggleSort} /></th>
+                    <th className="px-2 py-2"><SortHeader label="Müşteri" k="customer" sort={sort} onSort={toggleSort} /></th>
                     <th className="px-2 py-2">Cihaz / Açıklama</th>
-                    <th className="px-2 py-2 text-right">Kalan / Tutar</th>
+                    <th className="px-2 py-2 text-right"><SortHeader label="Kalan / Tutar" k="amount" sort={sort} onSort={toggleSort} right /></th>
                     <th className="px-2 py-2 text-right">İşlemler</th>
                   </tr>
                 </thead>
@@ -529,6 +725,8 @@ export default function FinanceDashboard() {
                     <ReceivableRow
                       key={item.id}
                       item={item}
+                      rate={rate?.rate ?? null}
+                      onOpenCustomer={setStatementFor}
                       onChange={(updated) => setItems((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))}
                       onDeleted={(id) => setItems((prev) => prev.filter((r) => r.id !== id))}
                     />
@@ -539,6 +737,14 @@ export default function FinanceDashboard() {
           )}
         </div>
       </div>
+      {statementFor && (
+        <CustomerStatementDrawer
+          customerName={statementFor}
+          items={items}
+          rate={rate?.rate ?? null}
+          onClose={() => setStatementFor(null)}
+        />
+      )}
       {importing && <InvoiceImportModal onClose={() => setImporting(false)} onImported={load} />}
     </div>
   );

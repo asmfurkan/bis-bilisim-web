@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchReceivable, parseAmount } from "@/lib/financeServer";
-import { remaining } from "@/lib/finance";
 
 const fail = (error: string, status = 500) => NextResponse.json({ success: false, error }, { status });
 
@@ -23,9 +22,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/admin/finan
     if (amount === null) return fail("Geçerli bir tahsilat tutarı girin.", 400);
 
     const current = await fetchReceivable(id);
-    if (amount > remaining(current) + 0.001) {
-      return fail("Tahsilat tutarı kalan bakiyeden büyük olamaz.", 400);
-    }
+    // Fazla ödemeye izin verilir: bakiye negatif (alacaklı) görünür, durum "odendi" olur.
 
     const { error: logError } = await getSupabaseAdmin()
       .from("payment_logs")

@@ -15,6 +15,7 @@ export function toReceivable(row: TransactionRow, payments: ReceivablePayment[] 
     title: row.title ?? "",
     description: row.description ?? "",
     deviceInfo: row.device_info,
+    currency: row.currency === "USD" ? "USD" : "TRY",
     amount,
     paid: row.status === "odendi" ? Math.max(paidAmount, amount) : paidAmount,
     dueDate: row.due_date,
@@ -56,4 +57,28 @@ export async function fetchReceivable(id: string) {
 export function parseAmount(value: unknown) {
   const n = typeof value === "number" ? value : Number(String(value ?? "").replace(",", "."));
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
+}
+
+/** Müşteri adlarını customers tablosuna ekler (olanlar atlanır). Hata olursa kayıt akışını bozmaz. */
+export async function ensureCustomers(list: { name: string; phone?: string | null }[]) {
+  try {
+    const wanted = new Map<string, { name: string; phone: string | null }>();
+    for (const c of list) {
+      const name = c.name.trim();
+      if (!name || name === "—") continue;
+      const key = name.toLocaleLowerCase("tr-TR");
+      if (!wanted.has(key)) wanted.set(key, { name, phone: c.phone?.trim() || null });
+    }
+    if (wanted.size === 0) return;
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase.from("customers").select("name");
+    if (error) throw error;
+    const known = new Set((data ?? []).map((r) => r.name.trim().toLocaleLowerCase("tr-TR")));
+    const rows = [...wanted.entries()].filter(([k]) => !known.has(k)).map(([, v]) => v);
+    if (rows.length === 0) return;
+    const { error: insertError } = await supabase.from("customers").insert(rows);
+    if (insertError) throw insertError;
+  } catch (error) {
+    console.error("Cari (customers) kaydı yapılamadı:", error);
+  }
 }

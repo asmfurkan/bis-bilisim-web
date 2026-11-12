@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { parseAmount, parseDate } from "@/lib/invoiceImport";
+import { ensureCustomers } from "@/lib/financeServer";
 
 const MAX_ROWS = 1000;
 
@@ -75,6 +76,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: error.message, details: error }, { status: 500 });
       }
     }
+
+    await ensureCustomers(toInsert.map((t) => ({ name: t.customer_name })));
 
     return NextResponse.json({ success: true, inserted: toInsert.length, duplicates, invalid });
   } catch (error) {

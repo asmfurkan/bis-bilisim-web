@@ -1,3 +1,5 @@
+export type Currency = "TRY" | "USD";
+
 export interface ReceivablePayment {
   id: string;
   amount: number;
@@ -13,6 +15,8 @@ export interface Receivable {
   title: string;
   description: string;
   deviceInfo: string | null;
+  /** "USD" kayıtlarda amount / paid dolar cinsindendir. */
+  currency: Currency;
   amount: number;
   /** Tahsil edilen toplam (status "odendi" ise tutarın tamamı). */
   paid: number;
@@ -27,8 +31,19 @@ export function paidTotal(r: Receivable) {
   return r.paid;
 }
 
+/** Kalan bakiye. Fazla ödemede negatif döner (alacaklı). */
 export function remaining(r: Receivable) {
-  return Math.max(0, Math.round((r.amount - r.paid) * 100) / 100);
+  return Math.round((r.amount - r.paid) * 100) / 100;
+}
+
+/** Kayıt para biriminden TL karşılığı (USD için kur ile çarpılır). */
+export function toTRY(r: Receivable, value: number, rate: number | null) {
+  if (r.currency !== "USD") return value;
+  return Math.round(value * (rate ?? 0) * 100) / 100;
+}
+
+export function formatMoney(value: number, currency: Currency) {
+  return new Intl.NumberFormat("tr-TR", { style: "currency", currency }).format(value);
 }
 
 export function isOverdue(r: Receivable) {
@@ -49,7 +64,7 @@ export function whatsappReminderHref(r: Receivable) {
 
   const what = r.description || r.title;
   const text =
-    `Merhaba ${r.customerName}, BİS Bilişim Teknolojileri'ne ait ${formatTRY(remaining(r))} bakiyeniz bulunmaktadır` +
+    `Merhaba ${r.customerName}, BİS Bilişim Teknolojileri'ne ait ${formatMoney(Math.max(0, remaining(r)), r.currency)} bakiyeniz bulunmaktadır` +
     (what ? ` (${what})` : "") +
     (r.dueDate ? `, vade tarihi ${new Date(r.dueDate).toLocaleDateString("tr-TR")}` : "") +
     `. Müsait olduğunuzda ödemenizi rica ederiz. Teşekkürler.`;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { ensureCustomers } from "@/lib/financeServer";
 import { DEFAULT_DELIVERY_TYPE, DELIVERY_TYPES, generateTrackingCode, isDeviceStatus, type AdminDevice } from "@/lib/devices";
 
 type DeviceRow = {
@@ -129,6 +130,7 @@ export async function POST(request: Request) {
         .single();
 
       if (!error) {
+        await ensureCustomers([{ name: customerName, phone }]);
         return NextResponse.json({ success: true, device: toAdminDevice(data as DeviceRow) });
       }
 

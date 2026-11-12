@@ -75,9 +75,13 @@ export interface Database {
           status: string | null;
           category: string | null;
           due_date: string | null;
+          currency: string | null;
+          usd_amount: number | null;
           created_at: string;
         };
         Insert: {
+          currency?: string | null;
+          usd_amount?: number | null;
           type: string;
           customer_name?: string | null;
           customer_phone?: string | null;
@@ -93,6 +97,7 @@ export interface Database {
           due_date?: string | null;
         };
         Update: {
+          usd_amount?: number | null;
           customer_name?: string | null;
           customer_phone?: string | null;
           notes?: string | null;
@@ -121,6 +126,18 @@ export interface Database {
           amount?: number;
           note?: string | null;
         };
+      };
+      customers: {
+        Relationships: [];
+        Row: { id: string; name: string; phone: string | null; created_at: string };
+        Insert: { name: string; phone?: string | null };
+        Update: { name?: string; phone?: string | null };
+      };
+      exchange_rates: {
+        Relationships: [];
+        Row: { currency: string; rate: number; source: string | null; updated_at: string };
+        Insert: { currency: string; rate: number; source?: string | null; updated_at?: string };
+        Update: { rate?: number; source?: string | null; updated_at?: string };
       };
     };
     Views: Record<string, never>;

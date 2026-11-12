@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { fetchPayments, fetchReceivable, parseAmount, toReceivable } from "@/lib/financeServer";
+import { ensureCustomers, fetchPayments, fetchReceivable, parseAmount, toReceivable } from "@/lib/financeServer";
 
 const unauthorized = () => NextResponse.json({ success: false, error: "Yetkisiz erişim." }, { status: 401 });
 const fail = (error: string, status = 500) => NextResponse.json({ success: false, error }, { status });
@@ -69,9 +69,13 @@ export async function POST(request: Request) {
       return fail("Müşteri adı ve geçerli bir tutar zorunludur.", 400);
     }
 
+    const currency = body?.currency === "USD" ? "USD" : "TRY";
+
     const { data, error } = await supabase
       .from("transactions")
       .insert({
+        currency,
+        usd_amount: currency === "USD" ? amount : null,
         type: body?.type === "borc" ? "borc" : "alacak",
         customer_name: customerName,
         contact_name: customerName,
@@ -91,8 +95,9 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("Finans API Gerçek Hata:", error);
-      return fail("Kayıt oluşturulamadı.");
+      return fail(`Kayıt oluşturulamadı: ${error.message}`);
     }
+    await ensureCustomers([{ name: customerName, phone }]);
     return NextResponse.json({ success: true, receivable: await fetchReceivable(data.id) });
   } catch (error) {
     console.error("Finans API Gerçek Hata:", error);

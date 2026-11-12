@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { fetchReceivable, parseAmount } from "@/lib/financeServer";
+import { ensureCustomers, fetchReceivable, parseAmount } from "@/lib/financeServer";
 import type { Database } from "@/lib/database.types";
 
 const fail = (error: string, status = 500) => NextResponse.json({ success: false, error }, { status });
@@ -26,6 +26,8 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/fina
       const amount = parseAmount(body.amount);
       if (amount === null) return fail("Geçerli bir tutar girin.", 400);
       updates.amount = amount;
+      const { data: cur } = await getSupabaseAdmin().from("transactions").select("currency").eq("id", id).single();
+      if (cur?.currency === "USD") updates.usd_amount = amount;
     }
     if (Object.keys(updates).length === 0) return fail("Güncellenecek alan bulunamadı.", 400);
 
@@ -35,6 +37,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/fina
       console.error("Finans API Gerçek Hata:", error);
       return fail("Kayıt güncellenemedi.");
     }
+    if (updates.customer_name) await ensureCustomers([{ name: updates.customer_name, phone: updates.customer_phone }]);
     return NextResponse.json({ success: true, receivable: await fetchReceivable(id) });
   } catch (error) {
     console.error("Finans API Gerçek Hata:", error);

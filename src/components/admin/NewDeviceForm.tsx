@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Loader2, AlertCircle, CheckCircle2, PlusCircle } from "lucide-react";
+import CustomerCombobox from "@/components/CustomerCombobox";
 import { DEFAULT_DELIVERY_TYPE, DELIVERY_TYPES, POPULAR_EPSON_MODELS } from "@/lib/devices";
 import type { AdminDevice } from "@/lib/devices";
 
@@ -66,11 +67,9 @@ export default function NewDeviceForm({ onCreated }: { onCreated: (device: Admin
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Müşteri Adı</label>
-            <input
+            <CustomerCombobox
               name="customerName"
-              type="text"
-              required
-              maxLength={80}
+              placeholder="Ara veya yeni isim yaz"
               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100"
             />
           </div>
