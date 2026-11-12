@@ -9,7 +9,6 @@ export default function NewDeviceForm({ onCreated }: { onCreated: (device: Admin
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [createdCode, setCreatedCode] = useState("");
-  const [customModel, setCustomModel] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,12 +43,13 @@ export default function NewDeviceForm({ onCreated }: { onCreated: (device: Admin
         onCreated(result.device);
         setCreatedCode(result.device.trackingCode);
         form.reset();
-        setCustomModel(false);
       } else {
+        console.error("Cihaz kayıt hatası:", result);
         setError(result.error || "Kayıt oluşturulamadı.");
       }
-    } catch {
-      setError("Bağlantı hatası oluştu.");
+    } catch (err) {
+      console.error("Cihaz kayıt hatası:", err);
+      setError(`Bağlantı hatası oluştu: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -90,37 +90,21 @@ export default function NewDeviceForm({ onCreated }: { onCreated: (device: Admin
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Model</label>
-            {customModel ? (
-              <input
-                name="model"
-                type="text"
-                required
-                autoFocus
-                maxLength={80}
-                placeholder="Model adını yazın"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100"
-              />
-            ) : (
-              <select
-                name="model"
-                required
-                defaultValue=""
-                onChange={(event) => {
-                  if (event.target.value === "__custom__") setCustomModel(true);
-                }}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100"
-              >
-                <option value="" disabled>
-                  Model seçin
-                </option>
-                {POPULAR_EPSON_MODELS.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))}
-                <option value="__custom__">Diğer (yazmak istiyorum)</option>
-              </select>
-            )}
+            <input
+              name="model"
+              type="text"
+              list="model-list"
+              required
+              maxLength={80}
+              autoComplete="off"
+              placeholder="Model ara veya yaz (örn. L3250)"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100"
+            />
+            <datalist id="model-list">
+              {POPULAR_EPSON_MODELS.map((model) => (
+                <option key={model} value={model} />
+              ))}
+            </datalist>
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">

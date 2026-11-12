@@ -10,9 +10,11 @@ export async function POST(request: Request) {
     const trackingCodeInput = typeof body?.trackingCode === "string" ? body.trackingCode.trim() : "";
     const phoneInput = typeof body?.phone === "string" ? body.phone.trim() : "";
 
-    if (!trackingCodeInput && !phoneInput) {
+    const serialInput = typeof body?.serialNo === "string" ? body.serialNo.trim() : "";
+
+    if (!trackingCodeInput && !phoneInput && !serialInput) {
       return NextResponse.json(
-        { success: false, error: "Takip numarası veya telefon numarası girin." },
+        { success: false, error: "Takip numarası, telefon numarası veya seri numarası girin." },
         { status: 400 }
       );
     }
@@ -25,6 +27,10 @@ export async function POST(request: Request) {
     if (trackingCodeInput) {
       const normalizedCode = trackingCodeInput.toUpperCase().replace(/\s+/g, "");
       query = query.eq("tracking_code", normalizedCode);
+    } else if (serialInput) {
+      // ilike joker karakterlerini kaçır, tam eşleşme (büyük/küçük harf duyarsız)
+      const escaped = serialInput.replace(/[\\%_]/g, (c: string) => `\\${c}`);
+      query = query.ilike("serial_no", escaped);
     } else {
       const digits = normalizePhoneDigits(phoneInput);
       if (digits.length < 10) {

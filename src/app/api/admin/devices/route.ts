@@ -135,7 +135,13 @@ export async function POST(request: Request) {
       // 23505 = unique_violation (tracking_code çakışması) -> yeniden dene
       if (error.code !== "23505") {
         console.error("Device create error:", error);
-        return NextResponse.json({ success: false, error: "Cihaz kaydedilemedi." }, { status: 500 });
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Cihaz kaydedilemedi: ${error.message}${error.details ? ` (${error.details})` : ""}${error.hint ? ` — ${error.hint}` : ""}`,
+          },
+          { status: 500 }
+        );
       }
     }
 

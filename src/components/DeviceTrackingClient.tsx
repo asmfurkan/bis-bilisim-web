@@ -5,7 +5,7 @@ import { Search, Loader2, AlertCircle, Printer, ClipboardList, StickyNote, Hash 
 import DeviceStatusStepper from "@/components/DeviceStatusStepper";
 import type { PublicDeviceResult } from "@/lib/devices";
 
-type Mode = "code" | "phone";
+type Mode = "code" | "phone" | "serial";
 type Status = "idle" | "loading" | "success" | "error";
 
 export default function DeviceTrackingClient() {
@@ -26,7 +26,8 @@ export default function DeviceTrackingClient() {
     setResults([]);
 
     try {
-      const payload = mode === "code" ? { trackingCode: value } : { phone: value };
+      const payload =
+        mode === "code" ? { trackingCode: value } : mode === "phone" ? { phone: value } : { serialNo: value };
       const response = await fetch("/api/cihaz-takip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -69,6 +70,15 @@ export default function DeviceTrackingClient() {
           >
             Telefon Numarası
           </button>
+          <button
+            type="button"
+            onClick={() => setMode("serial")}
+            className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-colors ${
+              mode === "serial" ? "bg-white text-blue-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Seri Numarası
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
@@ -79,7 +89,9 @@ export default function DeviceTrackingClient() {
               name="query"
               type={mode === "phone" ? "tel" : "text"}
               required
-              placeholder={mode === "code" ? "Örn. BIS-4821" : "Örn. 0532 123 45 67"}
+              placeholder={
+                mode === "code" ? "Örn. BIS-4821" : mode === "phone" ? "Örn. 0532 123 45 67" : "Örn: X8AF0131214"
+              }
               className="w-full rounded-xl border border-slate-200 bg-white py-3 pr-4 pl-11 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-blue-800 focus:ring-4 focus:ring-blue-100"
             />
           </div>
