@@ -8,7 +8,11 @@ import {
   ArrowDown,
   ArrowUp,
   Banknote,
+  BarChart3,
+  HandCoins,
+  Receipt,
   RefreshCw,
+  Users,
   FileSpreadsheet,
   Check,
   History,
@@ -25,10 +29,12 @@ import {
 import CustomerCombobox from "@/components/CustomerCombobox";
 import NetIncomeTable from "@/components/finance/NetIncomeTable";
 import CustomerStatementDrawer from "@/components/finance/CustomerStatementDrawer";
+import { CustomersTab, KasaTab } from "@/components/finance/FinanceTabs";
 import {
   formatMoney,
   formatTRY,
   isOverdue,
+  PAYMENT_METHODS,
   paidTotal,
   remaining,
   toTRY,
@@ -38,6 +44,16 @@ import {
 
 type Rate = { rate: number; source: string | null; updatedAt: string } | null;
 type SortKey = "date" | "doc" | "customer" | "amount";
+
+type Tab = "alacak" | "borc" | "cariler" | "kasa" | "ozet";
+
+const TABS: { id: Tab; label: string; icon: typeof Users }[] = [
+  { id: "alacak", label: "Alacaklar (Gelirler)", icon: HandCoins },
+  { id: "borc", label: "Borçlar (Ödenecekler)", icon: Receipt },
+  { id: "cariler", label: "Cariler", icon: Users },
+  { id: "kasa", label: "Günlük Kasa", icon: Wallet },
+  { id: "ozet", label: "Genel Özet", icon: BarChart3 },
+];
 
 type Filter = "hepsi" | "acik" | "vadesi_gecen" | "odendi";
 
@@ -109,12 +125,38 @@ function SummaryCard({
   );
 }
 
+/** Hızlı rozet seçimi; seçili değer FormData'ya gizli input ile gider. Tekrar tıklayınca seçim kalkar. */
+function PaymentMethodPicker({ defaultValue = "" }: { defaultValue?: string | null }) {
+  const [value, setValue] = useState(defaultValue ?? "");
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <input type="hidden" name="paymentMethod" value={value} />
+      <span className="mr-1 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Ödeme Yöntemi</span>
+      {PAYMENT_METHODS.map((m) => (
+        <button
+          key={m}
+          type="button"
+          aria-pressed={value === m}
+          onClick={() => setValue((v) => (v === m ? "" : m))}
+          className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+            value === m ? "bg-blue-800 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          {m}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ReceivableForm({
   initial,
+  defaultType = "alacak",
   onSaved,
   onCancel,
 }: {
   initial?: Receivable;
+  defaultType?: "alacak" | "borc";
   onSaved: (r: Receivable) => void;
   onCancel: () => void;
 }) {
@@ -145,7 +187,7 @@ function ReceivableForm({
       {!initial && (
         <select
           name="type"
-          defaultValue="alacak"
+          defaultValue={defaultType}
           aria-label="Kayıt türü"
           className={`${inputClass} font-semibold sm:col-span-2`}
         >
@@ -169,7 +211,7 @@ function ReceivableForm({
         placeholder="Müşteri ara veya yeni isim yaz"
         className={inputClass}
       />
-      <input name="phone" required defaultValue={initial?.phone} placeholder="Telefon" className={inputClass} />
+      <input name="phone" defaultValue={initial?.phone} placeholder="Telefon (cari seçilince otomatik dolar)" className={inputClass} />
       <input name="description" defaultValue={initial?.description} placeholder="Açıklama (cihaz / hizmet)" className={inputClass} />
       <div className="flex gap-2">
         <input
@@ -192,6 +234,9 @@ function ReceivableForm({
       </div>
       <input name="dueDate" type="date" defaultValue={initial?.dueDate ?? ""} className={inputClass} aria-label="Vade tarihi" />
       <input name="note" defaultValue={initial?.note ?? ""} placeholder="Not" className={inputClass} />
+      <div className="sm:col-span-2">
+        <PaymentMethodPicker defaultValue={initial?.paymentMethod} />
+      </div>
       {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
       <div className="flex gap-2 sm:col-span-2">
         <button
@@ -313,6 +358,11 @@ function ReceivableRow({
           <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${statusClass}`}>
             {statusLabel}
           </span>
+          {item.paymentMethod && (
+            <span className="ml-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+              {item.paymentMethod}
+            </span>
+          )}
           {item.type === "borc" && (
             <span className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">Borç</span>
           )}
@@ -429,7 +479,9 @@ function ReceivableRow({
         <tr className="bg-slate-50/60">
           <td colSpan={7} className="px-4 py-2">
             {paying && (
-              <form onSubmit={handlePayment} className="flex flex-col gap-2 sm:flex-row">
+              <form onSubmit={handlePayment} className="flex flex-col gap-2">
+                <PaymentMethodPicker defaultValue={item.paymentMethod} />
+                <div className="flex flex-col gap-2 sm:flex-row">
                 <input
                   name="amount"
                   required
@@ -459,6 +511,7 @@ function ReceivableRow({
                   {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                   Kaydet
                 </button>
+                </div>
               </form>
             )}
 
@@ -469,6 +522,7 @@ function ReceivableRow({
                   <li key={p.id} className="flex items-center justify-between gap-3 p-2">
                     <span className="text-slate-500">
                       {new Date(p.paidAt).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}
+                      {p.method ? ` · ${p.method}` : ""}
                       {p.note ? ` · ${p.note}` : ""}
                     </span>
                     <span className="flex items-center gap-2 font-semibold text-emerald-700">
@@ -506,6 +560,8 @@ export default function FinanceDashboard() {
   const [loadError, setLoadError] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("hepsi");
+  const [tab, setTab] = useState<Tab>("alacak");
+  const [rateEditing, setRateEditing] = useState(false);
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "date", dir: "desc" });
@@ -628,6 +684,7 @@ export default function FinanceDashboard() {
       }
     };
     return items.filter((r) => {
+      if (r.type !== (tab === "borc" ? "borc" : "alacak")) return false;
       if (filter === "acik" && remaining(r) <= 0) return false;
       if (filter === "odendi" && remaining(r) > 0) return false;
       if (filter === "vadesi_gecen" && !isOverdue(r)) return false;
@@ -637,128 +694,135 @@ export default function FinanceDashboard() {
         .toLocaleLowerCase("tr-TR")
         .includes(q);
     }).sort((a, b) => cmp(a, b) * dir);
-  }, [items, query, filter, sort, rate]);
+  }, [items, query, filter, sort, rate, tab]);
 
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
     router.refresh();
   }
 
+  const isList = tab === "alacak" || tab === "borc";
+  const rv = rate?.rate ?? null;
+
   return (
-    <div className="min-h-[70vh] bg-slate-50 py-16">
-      <div className="mx-auto max-w-6xl px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Finans Paneli</h1>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
-          >
-            <LogOut className="h-4 w-4" />
-            Çıkış Yap
-          </button>
-        </div>
-
-        <div className="mt-6 flex flex-col gap-2 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
-          <div className="flex-1">
-            <p className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">USD / TRY Kuru</p>
-            <p className="text-xl font-extrabold text-slate-900">
-              {rate ? `${rate.rate.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₺` : "Kur girilmedi"}
-            </p>
-            {rate && (
-              <p className="text-[11px] text-slate-400">
-                {rate.source ? `${rate.source} · ` : ""}{new Date(rate.updatedAt).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}
-              </p>
-            )}
-            {rateMsg && <p className={`text-xs ${rateMsg.ok ? "text-emerald-700" : "text-red-600"}`}>{rateMsg.text}</p>}
+    <div className="min-h-[70vh] bg-slate-50 pt-16">
+      <div className="mx-auto flex max-w-7xl flex-col md:min-h-[calc(100vh-4rem)] md:flex-row">
+        <aside className="shrink-0 bg-slate-900 text-white md:w-52">
+          <div className="px-4 py-4 md:py-6">
+            <h1 className="text-sm font-extrabold tracking-tight">Finans Paneli</h1>
           </div>
-          <input
-            value={rateInput}
-            onChange={(e) => setRateInput(e.target.value)}
-            inputMode="decimal"
-            placeholder="Elle kur (örn. 34,50)"
-            className={`${inputClass} sm:w-44`}
-          />
-          <button
-            type="button"
-            disabled={rateBusy || !rateInput.trim()}
-            onClick={() => updateRate(true)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-          >
-            Kaydet
-          </button>
-          <button
-            type="button"
-            disabled={rateBusy}
-            onClick={() => updateRate(false)}
-            className="flex items-center justify-center gap-1.5 rounded-lg bg-blue-800 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-900 disabled:opacity-60"
-          >
-            {rateBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            TCMB&apos;den Çek
-          </button>
-        </div>
-
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Kasa / Tahsilat" value={totals.collected} icon={<Wallet className="h-5 w-5" />} tone="bg-emerald-50 text-emerald-700" />
-          <SummaryCard label="Piyasada Kalan Alacak" value={totals.outstanding} icon={<Banknote className="h-5 w-5" />} tone="bg-blue-50 text-blue-800" />
-          <SummaryCard label="Ödenecek Borç (Verecek)" value={totals.payable} icon={<Banknote className="h-5 w-5" />} tone="bg-amber-50 text-amber-700" />
-          <SummaryCard label="Vadesi Geçenler" value={totals.overdue} icon={<AlertTriangle className="h-5 w-5" />} tone="bg-red-50 text-red-700" />
-        </div>
-
-        <NetIncomeTable items={items} rate={rate?.rate ?? null} />
-
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Müşteri, telefon veya açıklama ara..."
-              className={`${inputClass} pl-9`}
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {FILTERS.map((f) => (
+          <nav className="flex gap-1 overflow-x-auto px-2 pb-3 md:flex-col md:overflow-visible md:pb-0">
+            {TABS.map(({ id, label, icon: Icon }) => (
               <button
-                key={f.value}
+                key={id}
                 type="button"
-                onClick={() => setFilter(f.value)}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  filter === f.value ? "bg-blue-800 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                onClick={() => {
+                  setTab(id);
+                  setAdding(false);
+                  setFilter("hepsi");
+                  setQuery("");
+                }}
+                className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium whitespace-nowrap transition-colors ${
+                  tab === id ? "bg-blue-800 text-white" : "text-slate-300 hover:bg-slate-800 hover:text-white"
                 }`}
               >
-                {f.label}
+                <Icon className="h-4 w-4 shrink-0" />
+                {label}
               </button>
             ))}
+          </nav>
+          <div className="hidden px-2 pt-6 md:block">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white"
+            >
+              <LogOut className="h-4 w-4" />
+              Çıkış Yap
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setAdding((v) => !v)}
-            className="flex items-center justify-center gap-1.5 rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900"
-          >
-            <Plus className="h-4 w-4" />
-            Yeni Kayıt
-          </button>
-          <button
-            type="button"
-            onClick={() => setImporting(true)}
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50"
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            Fatura Yükle (.xlsx / .csv)
-          </button>
-        </div>
+        </aside>
 
-        <div className="mt-5 flex flex-col gap-4">
-          {adding && (
-            <ReceivableForm
-              onSaved={(r) => {
-                setItems((prev) => [r, ...prev]);
-                setAdding(false);
-              }}
-              onCancel={() => setAdding(false)}
-            />
-          )}
+        <main className="min-w-0 flex-1 px-4 py-6 lg:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
+              {TABS.find((t) => t.id === tab)?.label}
+            </h2>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs shadow-sm">
+                <span className="font-semibold text-slate-500">USD:</span>
+                <span className="font-bold text-slate-900" title={rate ? `${rate.source ?? ""} ${new Date(rate.updatedAt).toLocaleString("tr-TR")}` : undefined}>
+                  {rate ? `${rate.rate.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₺` : "—"}
+                </span>
+                {rateEditing ? (
+                  <>
+                    <input
+                      value={rateInput}
+                      onChange={(e) => setRateInput(e.target.value)}
+                      inputMode="decimal"
+                      placeholder="34,50"
+                      autoFocus
+                      aria-label="USD kuru"
+                      className="w-16 rounded border border-slate-200 px-1.5 py-0.5 text-xs outline-none focus:border-blue-800"
+                    />
+                    <button
+                      type="button"
+                      title="Kuru kaydet"
+                      aria-label="Kuru kaydet"
+                      disabled={rateBusy || !rateInput.trim()}
+                      onClick={async () => {
+                        await updateRate(true);
+                        setRateEditing(false);
+                      }}
+                      className="rounded p-0.5 text-emerald-700 hover:bg-emerald-50 disabled:opacity-40"
+                    >
+                      {rateBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    </button>
+                    <button
+                      type="button"
+                      title="TCMB'den çek"
+                      aria-label="TCMB'den çek"
+                      disabled={rateBusy}
+                      onClick={async () => {
+                        await updateRate(false);
+                        setRateEditing(false);
+                      }}
+                      className="rounded p-0.5 text-blue-800 hover:bg-blue-50 disabled:opacity-40"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Vazgeç"
+                      onClick={() => setRateEditing(false)}
+                      className="rounded p-0.5 text-slate-400 hover:bg-slate-100"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    title="Kuru düzenle"
+                    aria-label="Kuru düzenle"
+                    onClick={() => setRateEditing(true)}
+                    className="rounded p-0.5 text-slate-500 hover:bg-slate-100"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100 md:hidden"
+                aria-label="Çıkış Yap"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          {rateMsg && !rateMsg.ok && <p className="mt-1 text-right text-xs text-red-600">{rateMsg.text}</p>}
 
           {loading && (
             <div className="flex justify-center py-10 text-slate-400">
@@ -766,50 +830,132 @@ export default function FinanceDashboard() {
             </div>
           )}
           {!loading && loadError && <p className="py-6 text-center text-sm text-red-600">{loadError}</p>}
-          {!loading && !loadError && visible.length === 0 && (
-            <p className="py-10 text-center text-sm text-slate-500">Kayıt bulunamadı.</p>
+
+          {tab === "ozet" && !loading && (
+            <>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <SummaryCard label="Kasa / Tahsilat" value={totals.collected} icon={<Wallet className="h-5 w-5" />} tone="bg-emerald-50 text-emerald-700" />
+                <SummaryCard label="Piyasada Kalan Alacak" value={totals.outstanding} icon={<Banknote className="h-5 w-5" />} tone="bg-blue-50 text-blue-800" />
+                <SummaryCard label="Ödenecek Borç (Verecek)" value={totals.payable} icon={<Banknote className="h-5 w-5" />} tone="bg-amber-50 text-amber-700" />
+                <SummaryCard label="Vadesi Geçenler" value={totals.overdue} icon={<AlertTriangle className="h-5 w-5" />} tone="bg-red-50 text-red-700" />
+              </div>
+              <NetIncomeTable items={items} rate={rv} />
+            </>
           )}
 
-          {!loading && visible.length > 0 && (
-            <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm">
-              <table className="w-full min-w-[56rem] text-left text-xs">
-                <thead className="bg-slate-50">
-                  <tr className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
-                    <th className="px-2 py-2">Durum</th>
-                    <th className="px-2 py-2"><SortHeader label="Tarih" k="date" sort={sort} onSort={toggleSort} /></th>
-                    <th className="px-2 py-2"><SortHeader label="Belge / Fiş No" k="doc" sort={sort} onSort={toggleSort} /></th>
-                    <th className="px-2 py-2"><SortHeader label="Müşteri" k="customer" sort={sort} onSort={toggleSort} /></th>
-                    <th className="px-2 py-2">Cihaz / Açıklama</th>
-                    <th className="px-2 py-2 text-right"><SortHeader label="Kalan / Tutar" k="amount" sort={sort} onSort={toggleSort} right /></th>
-                    <th className="px-2 py-2 text-right">İşlemler</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.map((item) => (
-                    <ReceivableRow
-                      key={item.id}
-                      item={item}
-                      rate={rate?.rate ?? null}
-                      onOpenCustomer={setStatementFor}
-                      onChange={(updated) => setItems((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))}
-                      onDeleted={(id) => setItems((prev) => prev.filter((r) => r.id !== id))}
-                    />
+          {tab === "cariler" && !loading && <CustomersTab items={items} rate={rv} onOpen={setStatementFor} />}
+          {tab === "kasa" && !loading && <KasaTab items={items} rate={rv} />}
+
+          {isList && (
+            <>
+              <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center">
+                <div className="relative flex-1">
+                  <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Müşteri, telefon veya açıklama ara..."
+                    className={`${inputClass} pl-9`}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {FILTERS.map((f) => (
+                    <button
+                      key={f.value}
+                      type="button"
+                      onClick={() => setFilter(f.value)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        filter === f.value ? "bg-blue-800 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAdding((v) => !v)}
+                  className="flex items-center justify-center gap-1.5 rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900"
+                >
+                  <Plus className="h-4 w-4" />
+                  Yeni Kayıt
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImporting(true)}
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  {tab === "borc" ? "Excel'den Gider/Borç Yükle" : "Excel'den Gelir/Alacak Yükle"}
+                </button>
+              </div>
+
+              <div className="mt-5 flex flex-col gap-4">
+                {adding && (
+                  <ReceivableForm
+                    key={tab}
+                    defaultType={tab === "borc" ? "borc" : "alacak"}
+                    onSaved={(r) => {
+                      setItems((prev) => [r, ...prev]);
+                      setAdding(false);
+                    }}
+                    onCancel={() => setAdding(false)}
+                  />
+                )}
+
+                {!loading && !loadError && visible.length === 0 && (
+                  <p className="py-10 text-center text-sm text-slate-500">Kayıt bulunamadı.</p>
+                )}
+
+                {!loading && visible.length > 0 && (
+                  <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm">
+                    <table className="w-full min-w-[56rem] text-left text-xs">
+                      <thead className="bg-slate-50">
+                        <tr className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+                          <th className="px-2 py-2">Durum</th>
+                          <th className="px-2 py-2"><SortHeader label="Tarih" k="date" sort={sort} onSort={toggleSort} /></th>
+                          <th className="px-2 py-2"><SortHeader label="Belge / Fiş No" k="doc" sort={sort} onSort={toggleSort} /></th>
+                          <th className="px-2 py-2"><SortHeader label="Müşteri" k="customer" sort={sort} onSort={toggleSort} /></th>
+                          <th className="px-2 py-2">Cihaz / Açıklama</th>
+                          <th className="px-2 py-2 text-right"><SortHeader label="Kalan / Tutar" k="amount" sort={sort} onSort={toggleSort} right /></th>
+                          <th className="px-2 py-2 text-right">İşlemler</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visible.map((item) => (
+                          <ReceivableRow
+                            key={item.id}
+                            item={item}
+                            rate={rv}
+                            onOpenCustomer={setStatementFor}
+                            onChange={(updated) => setItems((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))}
+                            onDeleted={(id) => setItems((prev) => prev.filter((r) => r.id !== id))}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
           )}
-        </div>
+        </main>
       </div>
       {statementFor && (
         <CustomerStatementDrawer
           customerName={statementFor}
           items={items}
-          rate={rate?.rate ?? null}
+          rate={rv}
           onClose={() => setStatementFor(null)}
         />
       )}
-      {importing && <InvoiceImportModal onClose={() => setImporting(false)} onImported={load} />}
+      {importing && (
+        <InvoiceImportModal
+          type={tab === "borc" ? "borc" : "alacak"}
+          onClose={() => setImporting(false)}
+          onImported={load}
+        />
+      )}
     </div>
   );
 }

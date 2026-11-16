@@ -8,7 +8,9 @@ import { downloadTemplate, parseInvoiceFile, type ParseResult } from "@/lib/invo
 export default function InvoiceImportModal({
   onClose,
   onImported,
+  type = "alacak",
 }: {
+  type?: "alacak" | "borc";
   onClose: () => void;
   onImported: () => void;
 }) {
@@ -43,7 +45,7 @@ export default function InvoiceImportModal({
       const response = await fetch("/api/admin/finance/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: result.rows }),
+        body: JSON.stringify({ rows: result.rows, type }),
       });
       const data = await response.json();
       if (!data.success) {
@@ -72,7 +74,7 @@ export default function InvoiceImportModal({
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
             <FileSpreadsheet className="h-5 w-5 text-blue-800" />
-            Fatura Yükle (.xlsx / .csv)
+            {type === "borc" ? "Excel'den Gider/Borç Yükle" : "Excel'den Gelir/Alacak Yükle"}
           </h2>
           <button type="button" onClick={onClose} aria-label="Kapat" className="text-slate-400 hover:text-slate-900">
             <X className="h-5 w-5" />

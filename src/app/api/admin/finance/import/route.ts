@@ -13,6 +13,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
+    const type = body?.type === "borc" ? "borc" : "alacak";
     const input: unknown[] = Array.isArray(body?.rows) ? body.rows : [];
     if (input.length === 0) {
       return NextResponse.json({ success: false, error: "Aktarılacak kayıt yok." }, { status: 400 });
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
     const { data: existing, error: existingError } = await supabase
       .from("transactions")
       .select("customer_name, contact_name, title, amount")
-      .eq("type", "alacak");
+      .eq("type", type);
     if (existingError) {
       return NextResponse.json({ success: false, error: existingError.message, details: existingError }, { status: 500 });
     }
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
       }
       seen.add(key);
       toInsert.push({
-        type: "alacak",
+        type,
         customer_name: name,
         contact_name: name,
         title: title || null,

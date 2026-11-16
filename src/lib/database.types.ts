@@ -77,9 +77,11 @@ export interface Database {
           due_date: string | null;
           currency: string | null;
           usd_amount: number | null;
+          payment_method: string | null;
           created_at: string;
         };
         Insert: {
+          payment_method?: string | null;
           currency?: string | null;
           usd_amount?: number | null;
           type: string;
@@ -97,6 +99,7 @@ export interface Database {
           due_date?: string | null;
         };
         Update: {
+          payment_method?: string | null;
           title?: string | null;
           currency?: string | null;
           usd_amount?: number | null;
@@ -117,12 +120,14 @@ export interface Database {
           transaction_id: string;
           amount: number;
           note: string | null;
+          payment_method: string | null;
           created_at: string;
         };
         Insert: {
           transaction_id: string;
           amount: number;
           note?: string | null;
+          payment_method?: string | null;
         };
         Update: {
           amount?: number;

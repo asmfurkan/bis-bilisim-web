@@ -22,6 +22,7 @@ export function toReceivable(row: TransactionRow, payments: ReceivablePayment[] 
     paid: row.status === "odendi" && paidAmount === 0 && payments.length === 0 ? amount : paidAmount,
     dueDate: row.due_date,
     note: row.notes,
+    paymentMethod: row.payment_method ?? null,
     status: row.status ?? "bekliyor",
     createdAt: row.created_at,
     payments,
@@ -43,7 +44,7 @@ export async function fetchPayments(ids: string[]) {
   }
   for (const p of data ?? []) {
     const list = map.get(p.transaction_id) ?? [];
-    list.push({ id: p.id, amount: Number(p.amount), paidAt: p.created_at, note: p.note });
+    list.push({ id: p.id, amount: Number(p.amount), paidAt: p.created_at, note: p.note, method: p.payment_method ?? null });
     map.set(p.transaction_id, list);
   }
   return map;
@@ -83,4 +84,11 @@ export async function ensureCustomers(list: { name: string; phone?: string | nul
   } catch (error) {
     console.error("Cari (customers) kaydı yapılamadı:", error);
   }
+}
+
+const METHODS = ["Nakit", "Havale", "Fiş", "Banka POS", "Şahsi Kart"];
+/** Bilinen ödeme yöntemlerinden birini döndürür, aksi halde null. */
+export function parseMethod(value: unknown) {
+  const v = typeof value === "string" ? value.trim() : "";
+  return METHODS.includes(v) ? v : null;
 }

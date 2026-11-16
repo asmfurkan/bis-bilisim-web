@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { fetchReceivable, parseAmount } from "@/lib/financeServer";
+import { fetchReceivable, parseAmount, parseMethod } from "@/lib/financeServer";
 
 const fail = (error: string, status = 500) => NextResponse.json({ success: false, error }, { status });
 
@@ -30,6 +30,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/admin/finan
         transaction_id: id,
         amount,
         note: typeof body?.note === "string" && body.note.trim() ? body.note.trim() : null,
+        payment_method: parseMethod(body?.paymentMethod),
       });
     if (logError) {
       console.error("Finans API Gerçek Hata:", logError);

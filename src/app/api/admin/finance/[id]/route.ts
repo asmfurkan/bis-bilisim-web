@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { ensureCustomers, fetchReceivable, parseAmount } from "@/lib/financeServer";
+import { ensureCustomers, fetchReceivable, parseAmount, parseMethod } from "@/lib/financeServer";
 import type { Database } from "@/lib/database.types";
 
 const fail = (error: string, status = 500) => NextResponse.json({ success: false, error }, { status });
@@ -22,6 +22,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/fina
     if (body?.description !== undefined) updates.description = str(body.description) || null;
     if (body?.note !== undefined) updates.notes = str(body.note) || null;
     if (body?.dueDate !== undefined) updates.due_date = str(body.dueDate) || null;
+    if (body?.paymentMethod !== undefined) updates.payment_method = parseMethod(body.paymentMethod);
     if (body?.title !== undefined) updates.title = str(body.title) || null;
 
     let amount: number | null = null;

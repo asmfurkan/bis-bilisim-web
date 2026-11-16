@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { ensureCustomers, fetchPayments, fetchReceivable, parseAmount, toReceivable } from "@/lib/financeServer";
+import { ensureCustomers, fetchPayments, fetchReceivable, parseAmount, parseMethod, toReceivable } from "@/lib/financeServer";
 
 const unauthorized = () => NextResponse.json({ success: false, error: "Yetkisiz erişim." }, { status: 401 });
 const fail = (error: string, status = 500) => NextResponse.json({ success: false, error }, { status });
@@ -84,6 +84,7 @@ export async function POST(request: Request) {
         description: description || null,
         device_info: deviceInfo,
         notes: str(body?.note) || null,
+        payment_method: parseMethod(body?.paymentMethod),
         amount,
         paid_amount: 0,
         status: "bekliyor",

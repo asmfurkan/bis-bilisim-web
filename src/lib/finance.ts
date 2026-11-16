@@ -1,10 +1,15 @@
 export type Currency = "TRY" | "USD";
 
+export const PAYMENT_METHODS = ["Nakit", "Havale", "Fiş", "Banka POS", "Şahsi Kart"] as const;
+/** Günlük kasa ekranında görünen (fiziksel kasa/POS) ödeme yöntemleri. */
+export const KASA_METHODS: readonly string[] = ["Nakit", "Banka POS", "Fiş"];
+
 export interface ReceivablePayment {
   id: string;
   amount: number;
   paidAt: string;
   note: string | null;
+  method: string | null;
 }
 
 export interface Receivable {
@@ -22,6 +27,7 @@ export interface Receivable {
   paid: number;
   dueDate: string | null;
   note: string | null;
+  paymentMethod: string | null;
   status: string;
   createdAt: string;
   payments: ReceivablePayment[];
