@@ -706,12 +706,12 @@ export default function FinanceDashboard() {
 
   return (
     <div className="min-h-[70vh] bg-slate-50 pt-16">
-      <div className="mx-auto flex max-w-7xl flex-col md:min-h-[calc(100vh-4rem)] md:flex-row">
-        <aside className="shrink-0 bg-slate-900 text-white md:w-52">
-          <div className="px-4 py-4 md:py-6">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 md:flex-row md:items-start lg:px-8">
+        <aside className="h-fit shrink-0 rounded-2xl bg-slate-900 p-4 text-white md:sticky md:top-20 md:w-52">
+          <div className="px-1 pb-3">
             <h1 className="text-sm font-extrabold tracking-tight">Finans Paneli</h1>
           </div>
-          <nav className="flex gap-1 overflow-x-auto px-2 pb-3 md:flex-col md:overflow-visible md:pb-0">
+          <nav className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
             {TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -731,7 +731,7 @@ export default function FinanceDashboard() {
               </button>
             ))}
           </nav>
-          <div className="hidden px-2 pt-6 md:block">
+          <div className="mt-3 hidden border-t border-slate-800 pt-3 md:block">
             <button
               type="button"
               onClick={handleLogout}
@@ -743,7 +743,7 @@ export default function FinanceDashboard() {
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 px-4 py-6 lg:px-8">
+        <main className="min-w-0 flex-1 py-1">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
               {TABS.find((t) => t.id === tab)?.label}
