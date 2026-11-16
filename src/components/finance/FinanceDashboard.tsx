@@ -348,14 +348,14 @@ function ReceivableRow({
         : item.paid > 0
           ? "bg-sky-50 text-sky-700"
           : "bg-slate-100 text-slate-700";
-  const iconBtn = "rounded-md p-1.5 transition-colors disabled:opacity-50";
+  const iconBtn = "rounded-md p-1 transition-colors disabled:opacity-50";
   const deviceText = [item.deviceInfo, item.description].filter(Boolean).join(" · ");
 
   return (
     <Fragment>
       <tr className="border-t border-slate-100 align-middle hover:bg-slate-50/70">
         <td className="px-2 py-1.5">
-          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${statusClass}`}>
+          <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClass}`}>
             {statusLabel}
           </span>
           {item.paymentMethod && (
@@ -367,7 +367,7 @@ function ReceivableRow({
             <span className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">Borç</span>
           )}
         </td>
-        <td className="px-2 py-1.5 whitespace-nowrap text-slate-500">
+        <td className="px-2 py-1.5 text-slate-500">
           {new Date(item.createdAt).toLocaleDateString("tr-TR")}
           {item.dueDate && (
             <div className={`text-[11px] ${overdue ? "font-medium text-red-600" : "text-slate-400"}`}>
@@ -375,8 +375,8 @@ function ReceivableRow({
             </div>
           )}
         </td>
-        <td className="px-2 py-1.5 whitespace-nowrap text-slate-600">{item.title || "—"}</td>
-        <td className="px-2 py-1.5">
+        <td className="px-2 py-1.5 break-words text-slate-600">{item.title || "—"}</td>
+        <td className="px-2 py-1.5 break-words">
           <button
             type="button"
             onClick={() => onOpenCustomer(item.customerName)}
@@ -387,18 +387,18 @@ function ReceivableRow({
           </button>
           {item.phone && <div className="text-[11px] text-slate-500">{item.phone}</div>}
         </td>
-        <td className="max-w-[16rem] px-2 py-1.5">
-          <div className="truncate text-slate-700" title={deviceText}>
+        <td className="px-2 py-1.5 break-words">
+          <div className="line-clamp-2 text-slate-700" title={deviceText}>
             {deviceText || "—"}
           </div>
           {item.note && (
-            <div className="truncate text-[11px] text-slate-400" title={item.note}>
+            <div className="line-clamp-2 text-[11px] break-words text-slate-400" title={item.note}>
               Not: {item.note}
             </div>
           )}
         </td>
-        <td className="px-2 py-1.5 text-right whitespace-nowrap">
-          <div className={`text-sm font-bold ${left > 0 ? "text-slate-900" : left < 0 ? "text-sky-700" : "text-emerald-600"}`}>
+        <td className="px-2 py-1.5 text-right">
+          <div className={`text-sm font-bold break-words ${left > 0 ? "text-slate-900" : left < 0 ? "text-sky-700" : "text-emerald-600"}`}>
             {left > 0
               ? `${item.type === "borc" ? "−" : "+"}${formatMoney(left, item.currency)}`
               : left < 0
@@ -420,7 +420,7 @@ function ReceivableRow({
             </div>
           )}
         </td>
-        <td className="px-2 py-1.5 text-right whitespace-nowrap">
+        <td className="px-1 py-1.5 text-right">
           {(
             <button
               type="button"
@@ -908,8 +908,17 @@ export default function FinanceDashboard() {
                 )}
 
                 {!loading && visible.length > 0 && (
-                  <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm">
-                    <table className="w-full min-w-[56rem] text-left text-xs">
+                  <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+                    <table className="w-full table-fixed text-left text-xs">
+                      <colgroup>
+                        <col className="w-[8%]" />
+                        <col className="w-[9%]" />
+                        <col className="w-[11%]" />
+                        <col className="w-[17%]" />
+                        <col />
+                        <col className="w-[17%]" />
+                        <col className="w-[11%]" />
+                      </colgroup>
                       <thead className="bg-slate-50">
                         <tr className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
                           <th className="px-2 py-2">Durum</th>
