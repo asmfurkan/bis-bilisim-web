@@ -11,7 +11,7 @@ const round = (n: number) => Math.round(n * 100) / 100;
 const dayOf = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Europe/Istanbul" });
 const key = (name: string) => name.trim().toLocaleLowerCase("tr-TR");
 
-type Customer = { id: string; name: string; phone: string | null };
+type Customer = { id: string; name: string; phone: string | null; address: string | null };
 
 /** customers tablosundaki tüm cariler + bakiyeleri. Satıra tıklayınca cari ekstre açılır. */
 export function CustomersTab({
@@ -52,13 +52,13 @@ export function CustomersTab({
   }, []);
 
   const rows = useMemo(() => {
-    const map = new Map<string, { id: string | null; name: string; phone: string; receivable: number; payable: number; count: number }>();
+    const map = new Map<string, { id: string | null; name: string; phone: string; address: string; receivable: number; payable: number; count: number }>();
     for (const c of customers) {
-      map.set(key(c.name), { id: c.id, name: c.name, phone: c.phone ?? "", receivable: 0, payable: 0, count: 0 });
+      map.set(key(c.name), { id: c.id, name: c.name, phone: c.phone ?? "", address: c.address ?? "", receivable: 0, payable: 0, count: 0 });
     }
     for (const r of items) {
       const k = key(r.customerName);
-      const row = map.get(k) ?? { id: null, name: r.customerName, phone: r.phone, receivable: 0, payable: 0, count: 0 };
+      const row = map.get(k) ?? { id: null, name: r.customerName, phone: r.phone, address: "", receivable: 0, payable: 0, count: 0 };
       const left = toTRY(r, Math.max(0, remaining(r)), rate);
       if (r.type === "borc") row.payable += left;
       else row.receivable += left;
@@ -68,7 +68,7 @@ export function CustomersTab({
     }
     const q = key(query);
     return [...map.values()]
-      .filter((r) => !q || `${r.name} ${r.phone}`.toLocaleLowerCase("tr-TR").includes(q))
+      .filter((r) => !q || `${r.name} ${r.phone} ${r.address}`.toLocaleLowerCase("tr-TR").includes(q))
       .sort((a, b) => a.name.localeCompare(b.name, "tr"));
   }, [customers, items, rate, query]);
 
@@ -82,7 +82,7 @@ export function CustomersTab({
       const response = await fetch(`/api/admin/customers/${editing.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.get("name"), phone: form.get("phone") }),
+        body: JSON.stringify({ name: form.get("name"), phone: form.get("phone"), address: form.get("address") }),
       });
       const result = await response.json();
       if (!result.success) {
@@ -123,11 +123,12 @@ export function CustomersTab({
       </div>
       {loadError && <p className="mt-3 text-sm text-red-600">{loadError}</p>}
       <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm">
-        <table className="w-full min-w-[44rem] text-left text-xs">
+        <table className="w-full min-w-[52rem] text-left text-xs">
           <thead className="bg-slate-50 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
             <tr>
               <th className="px-3 py-2">Cari</th>
               <th className="px-3 py-2">Telefon</th>
+              <th className="px-3 py-2">Adres</th>
               <th className="px-3 py-2 text-right">Alacağımız</th>
               <th className="px-3 py-2 text-right">Borcumuz</th>
               <th className="px-3 py-2 text-right">Net Bakiye</th>
@@ -137,7 +138,7 @@ export function CustomersTab({
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
+                <td colSpan={7} className="px-3 py-8 text-center text-slate-500">
                   Cari bulunamadı.
                 </td>
               </tr>
@@ -153,6 +154,7 @@ export function CustomersTab({
                 >
                   <td className="px-3 py-2 font-medium text-blue-800">{r.name}</td>
                   <td className="px-3 py-2 text-slate-600">{r.phone || "—"}</td>
+                  <td className="max-w-48 px-3 py-2 break-words text-slate-600">{r.address || "—"}</td>
                   <td className="px-3 py-2 text-right text-slate-900">{formatTRY(round(r.receivable))}</td>
                   <td className="px-3 py-2 text-right text-amber-700">{formatTRY(round(r.payable))}</td>
                   <td
@@ -170,7 +172,7 @@ export function CustomersTab({
                           type="button"
                           onClick={() => {
                             setEditError("");
-                            setEditing({ id, name: r.name, phone: r.phone || null });
+                            setEditing({ id, name: r.name, phone: r.phone || null, address: r.address || null });
                           }}
                           className="mr-1 inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold text-slate-700 hover:bg-slate-100"
                         >
@@ -215,6 +217,10 @@ export function CustomersTab({
               <label className="text-xs font-semibold text-slate-500">
                 Telefon
                 <input name="phone" maxLength={50} defaultValue={editing.phone ?? ""} className={`${inputClass} mt-1`} />
+              </label>
+              <label className="text-xs font-semibold text-slate-500">
+                Adres
+                <textarea name="address" rows={3} maxLength={500} defaultValue={editing.address ?? ""} className={`${inputClass} mt-1`} />
               </label>
               <p className="text-[11px] text-slate-400">İsim değişirse bu cariye ait tüm finans kayıtları da güncellenir.</p>
               {editError && <p className="text-sm text-red-600">{editError}</p>}

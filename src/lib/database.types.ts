@@ -138,9 +138,9 @@ export interface Database {
       };
       customers: {
         Relationships: [];
-        Row: { id: string; name: string; phone: string | null; created_at: string };
-        Insert: { name: string; phone?: string | null };
-        Update: { name?: string; phone?: string | null };
+        Row: { id: string; name: string; phone: string | null; address: string | null; created_at: string };
+        Insert: { name: string; phone?: string | null; address?: string | null };
+        Update: { name?: string; phone?: string | null; address?: string | null };
       };
       exchange_rates: {
         Relationships: [];

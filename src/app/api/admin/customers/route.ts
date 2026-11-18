@@ -8,7 +8,7 @@ export async function GET() {
   }
   const { data, error } = await getSupabaseAdmin()
     .from("customers")
-    .select("id, name, phone")
+    .select("id, name, phone, address")
     .order("name", { ascending: true })
     .limit(5000);
   if (error) {

@@ -12,6 +12,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/cust
     const body = await request.json();
     const name = str(body?.name).slice(0, 200);
     const phone = str(body?.phone).slice(0, 50);
+    const address = str(body?.address).slice(0, 500);
     if (!name) return fail("Cari adı boş olamaz.", 400);
 
     const supabase = getSupabaseAdmin();
@@ -26,7 +27,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/cust
       }
     }
 
-    const { error } = await supabase.from("customers").update({ name, phone: phone || null }).eq("id", id);
+    const { error } = await supabase.from("customers").update({ name, phone: phone || null, address: address || null }).eq("id", id);
     if (error) {
       console.error("Cari güncellenemedi:", error);
       return fail(`Cari güncellenemedi: ${error.message}`);
@@ -41,7 +42,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/cust
       .update({ customer_phone: phone || null })
       .eq("customer_name", name);
 
-    return NextResponse.json({ success: true, customer: { id, name, phone: phone || null } });
+    return NextResponse.json({ success: true, customer: { id, name, phone: phone || null, address: address || null } });
   } catch (error) {
     console.error("Cari güncelleme hatası:", error);
     return fail("Beklenmeyen bir hata oluştu.");
