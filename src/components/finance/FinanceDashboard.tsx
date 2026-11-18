@@ -31,6 +31,7 @@ import NetIncomeTable from "@/components/finance/NetIncomeTable";
 import CustomerStatementDrawer from "@/components/finance/CustomerStatementDrawer";
 import { CustomersTab, KasaTab } from "@/components/finance/FinanceTabs";
 import {
+  CATEGORY_SUGGESTIONS,
   formatMoney,
   formatTRY,
   isOverdue,
@@ -76,7 +77,7 @@ async function api(url: string, method: string, body?: unknown) {
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  return (await response.json()) as { success: boolean; error?: string; receivable?: Receivable };
+  return (await response.json()) as { success: boolean; error?: string; duplicate?: boolean; receivable?: Receivable };
 }
 
 function SortHeader({
@@ -162,24 +163,29 @@ function ReceivableForm({
 }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [dupWarning, setDupWarning] = useState<{ message: string; payload: Record<string, unknown> } | null>(null);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const payload = Object.fromEntries(form.entries());
+  async function submit(payload: Record<string, unknown>) {
     setSaving(true);
     setError("");
     try {
       const result = initial
         ? await api(`/api/admin/finance/${initial.id}`, "PATCH", payload)
         : await api("/api/admin/finance", "POST", payload);
-      if (result.success && result.receivable) onSaved(result.receivable);
+      if (result.duplicate) {
+        setDupWarning({ message: result.error || "Dikkat: Bu belge numarasına ait kayıt zaten mevcut!", payload });
+      } else if (result.success && result.receivable) onSaved(result.receivable);
       else setError(result.error || "Kaydedilemedi.");
     } catch {
       setError("Bağlantı hatası oluştu.");
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void submit(Object.fromEntries(new FormData(event.currentTarget).entries()));
   }
 
   return (
@@ -212,7 +218,34 @@ function ReceivableForm({
         className={inputClass}
       />
       <input name="phone" defaultValue={initial?.phone} placeholder="Telefon (cari seçilince otomatik dolar)" className={inputClass} />
-      <input name="description" defaultValue={initial?.description} placeholder="Açıklama (cihaz / hizmet)" className={inputClass} />
+      <div className="rounded-xl border border-blue-200 bg-white p-3 sm:col-span-2">
+        <p className="text-[11px] font-bold tracking-wide text-blue-900 uppercase">İşlem Nedeni / Açıklama</p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <div>
+            <input
+              name="category"
+              list="finance-categories"
+              maxLength={100}
+              defaultValue={initial?.category ?? ""}
+              placeholder="Kalem — Örn: Parça Satışı, Servis Ücreti, Ofis Gideri"
+              aria-label="İşlem nedeni / kalem"
+              className={inputClass}
+            />
+            <datalist id="finance-categories">
+              {CATEGORY_SUGGESTIONS.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+          </div>
+          <input
+            name="description"
+            defaultValue={initial?.description}
+            placeholder="Açıklama (neden geldi / gider nedeni, cihaz / hizmet)"
+            aria-label="Açıklama"
+            className={inputClass}
+          />
+        </div>
+      </div>
       <div className="flex gap-2">
         <input
           name="amount"
@@ -238,6 +271,38 @@ function ReceivableForm({
         <PaymentMethodPicker defaultValue={initial?.paymentMethod} />
       </div>
       {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
+      {dupWarning && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 p-4" role="alertdialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="flex items-center gap-2 text-base font-bold text-red-700">
+              <AlertTriangle className="h-5 w-5" />
+              {dupWarning.message}
+            </h3>
+            <p className="mt-2 text-sm text-slate-600">Kayıt henüz eklenmedi. İptal edebilir veya yine de ekleyebilirsiniz.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDupWarning(null)}
+                className="rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900"
+              >
+                İptal
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => {
+                  const payload = { ...dupWarning.payload, force: true };
+                  setDupWarning(null);
+                  void submit(payload);
+                }}
+                className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+              >
+                Yine de Kaydet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex gap-2 sm:col-span-2">
         <button
           type="submit"
@@ -279,7 +344,7 @@ function ReceivableRow({
   const sym = usd ? "$" : "₺";
   const overdue = isOverdue(item);
 
-  async function run(action: () => Promise<{ success: boolean; error?: string; receivable?: Receivable }>) {
+  async function run(action: () => Promise<{ success: boolean; error?: string; duplicate?: boolean; receivable?: Receivable }>) {
     setBusy(true);
     setError("");
     try {
@@ -388,6 +453,11 @@ function ReceivableRow({
           {item.phone && <div className="text-[11px] text-slate-500">{item.phone}</div>}
         </td>
         <td className="px-2 py-1.5 break-words">
+          {item.category && (
+            <span className="mb-0.5 inline-block rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-800">
+              {item.category}
+            </span>
+          )}
           <div className="line-clamp-2 text-slate-700" title={deviceText}>
             {deviceText || "—"}
           </div>
@@ -689,7 +759,7 @@ export default function FinanceDashboard() {
       if (filter === "odendi" && remaining(r) > 0) return false;
       if (filter === "vadesi_gecen" && !isOverdue(r)) return false;
       if (!q) return true;
-      return [r.customerName, r.phone, r.description, r.note ?? ""]
+      return [r.customerName, r.phone, r.description, r.category, r.title, r.note ?? ""]
         .join(" ")
         .toLocaleLowerCase("tr-TR")
         .includes(q);
@@ -843,7 +913,7 @@ export default function FinanceDashboard() {
             </>
           )}
 
-          {tab === "cariler" && !loading && <CustomersTab items={items} rate={rv} onOpen={setStatementFor} />}
+          {tab === "cariler" && !loading && <CustomersTab items={items} rate={rv} onOpen={setStatementFor} onCustomerChanged={load} />}
           {tab === "kasa" && !loading && <KasaTab items={items} rate={rv} />}
 
           {isList && (
@@ -925,7 +995,7 @@ export default function FinanceDashboard() {
                           <th className="px-2 py-2"><SortHeader label="Tarih" k="date" sort={sort} onSort={toggleSort} /></th>
                           <th className="px-2 py-2"><SortHeader label="Belge / Fiş No" k="doc" sort={sort} onSort={toggleSort} /></th>
                           <th className="px-2 py-2"><SortHeader label="Müşteri" k="customer" sort={sort} onSort={toggleSort} /></th>
-                          <th className="px-2 py-2">Cihaz / Açıklama</th>
+                          <th className="px-2 py-2">İşlem Nedeni / Açıklama</th>
                           <th className="px-2 py-2 text-right"><SortHeader label="Kalan / Tutar" k="amount" sort={sort} onSort={toggleSort} right /></th>
                           <th className="px-2 py-2 text-right">İşlemler</th>
                         </tr>

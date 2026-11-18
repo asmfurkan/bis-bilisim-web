@@ -23,6 +23,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/fina
     if (body?.note !== undefined) updates.notes = str(body.note) || null;
     if (body?.dueDate !== undefined) updates.due_date = str(body.dueDate) || null;
     if (body?.paymentMethod !== undefined) updates.payment_method = parseMethod(body.paymentMethod);
+    if (body?.category !== undefined) updates.category = str(body.category).slice(0, 100) || null;
     if (body?.title !== undefined) updates.title = str(body.title) || null;
 
     let amount: number | null = null;

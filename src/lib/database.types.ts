@@ -111,6 +111,8 @@ export interface Database {
           paid_amount?: number | null;
           status?: string | null;
           due_date?: string | null;
+          category?: string | null;
+          contact_name?: string | null;
         };
       };
       payment_logs: {

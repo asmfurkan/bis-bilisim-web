@@ -23,6 +23,7 @@ export function toReceivable(row: TransactionRow, payments: ReceivablePayment[] 
     dueDate: row.due_date,
     note: row.notes,
     paymentMethod: row.payment_method ?? null,
+    category: row.category ?? "",
     status: row.status ?? "bekliyor",
     createdAt: row.created_at,
     payments,
@@ -86,7 +87,7 @@ export async function ensureCustomers(list: { name: string; phone?: string | nul
   }
 }
 
-const METHODS = ["Nakit", "Havale", "Fiş", "Banka POS", "Şahsi Kart"];
+const METHODS = ["Nakit", "Şahsi Kart", "Havale", "EFT", "Banka POS", "Fiş"];
 /** Bilinen ödeme yöntemlerinden birini döndürür, aksi halde null. */
 export function parseMethod(value: unknown) {
   const v = typeof value === "string" ? value.trim() : "";

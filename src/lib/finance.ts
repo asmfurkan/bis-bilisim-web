@@ -1,6 +1,21 @@
 export type Currency = "TRY" | "USD";
 
-export const PAYMENT_METHODS = ["Nakit", "Havale", "Fiş", "Banka POS", "Şahsi Kart"] as const;
+export const PAYMENT_METHODS = ["Nakit", "Şahsi Kart", "Havale", "EFT", "Banka POS", "Fiş"] as const;
+
+/** İşlem nedeni / kalem önerileri (serbest metin de girilebilir). */
+export const CATEGORY_SUGGESTIONS = [
+  "Parça Satışı",
+  "Servis Ücreti",
+  "Cihaz Onarım / Servis",
+  "Ürün Satışı",
+  "Ofis Gideri",
+  "Kira",
+  "Fatura (Elektrik/Su/İnternet)",
+  "Maaş / Personel",
+  "Yakıt / Ulaşım",
+  "Parça Alımı",
+  "Vergi / Harç",
+] as const;
 /** Günlük kasa ekranında görünen (fiziksel kasa/POS) ödeme yöntemleri. */
 export const KASA_METHODS: readonly string[] = ["Nakit", "Banka POS", "Fiş"];
 
@@ -28,6 +43,8 @@ export interface Receivable {
   dueDate: string | null;
   note: string | null;
   paymentMethod: string | null;
+  /** İşlem nedeni / kalem (Parça Satışı, Ofis Gideri...). */
+  category: string;
   status: string;
   createdAt: string;
   payments: ReceivablePayment[];

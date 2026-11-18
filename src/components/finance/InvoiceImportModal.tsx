@@ -21,8 +21,10 @@ export default function InvoiceImportModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState<string | null>(null);
+  const [dup, setDup] = useState<{ count: number; samples: { customerName: string; title: string; amount: number }[] } | null>(null);
 
   async function handleFile(file: File) {
+    setDup(null);
     setParsing(true);
     setError("");
     setResult(null);
@@ -37,7 +39,7 @@ export default function InvoiceImportModal({
     }
   }
 
-  async function handleConfirm() {
+  async function handleConfirm(onDuplicate: "ask" | "skip" | "force" = "ask") {
     if (!result || result.rows.length === 0) return;
     setSaving(true);
     setError("");
@@ -45,16 +47,22 @@ export default function InvoiceImportModal({
       const response = await fetch("/api/admin/finance/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: result.rows, type }),
+        body: JSON.stringify({ rows: result.rows, type, onDuplicate }),
       });
       const data = await response.json();
+      if (data.duplicate) {
+        setDup({ count: data.duplicates, samples: data.samples ?? [] });
+        return;
+      }
       if (!data.success) {
         setError(data.error || "Kaydedilemedi.");
         return;
       }
+      setDup(null);
       setDone(
         `${data.inserted} kayıt eklendi` +
-          (data.duplicates ? `, ${data.duplicates} mükerrer fatura atlandı` : "") +
+          (onDuplicate === "skip" && data.duplicates ? `, ${data.duplicates} mükerrer kayıt atlandı` : "") +
+          (onDuplicate === "force" && data.duplicates ? ` (${data.duplicates} mükerrer kayıt dahil)` : "") +
           "."
       );
       setResult(null);
@@ -179,7 +187,7 @@ export default function InvoiceImportModal({
           {result && result.rows.length > 0 && result.missingColumns.length === 0 && (
             <button
               type="button"
-              onClick={handleConfirm}
+              onClick={() => handleConfirm("ask")}
               disabled={saving}
               className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
             >
@@ -189,6 +197,48 @@ export default function InvoiceImportModal({
           )}
         </div>
       </div>
+      {dup && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 p-4" role="alertdialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="flex items-center gap-2 text-base font-bold text-red-700">
+              <AlertCircle className="h-5 w-5" />
+              Dikkat: Bu belge numarasına ait kayıt zaten mevcut!
+            </h3>
+            <p className="mt-2 text-sm text-slate-600">
+              {dup.count} kayıt daha önce eklenmiş (aynı belge no veya aynı cari + tutar). Hiçbir kayıt henüz eklenmedi.
+            </p>
+            <ul className="mt-3 max-h-40 space-y-1 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
+              {dup.samples.map((s, i) => (
+                <li key={i}>
+                  <b>{s.customerName}</b> · {s.title || "belge no yok"} · {formatTRY(s.amount)}
+                </li>
+              ))}
+              {dup.count > dup.samples.length && <li className="text-slate-400">… ve {dup.count - dup.samples.length} kayıt daha</li>}
+            </ul>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button type="button" onClick={() => setDup(null)} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">
+                İptal
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => handleConfirm("force")}
+                className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+              >
+                Yine de Hepsini Ekle
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => handleConfirm("skip")}
+                className="rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900 disabled:opacity-60"
+              >
+                Mükerrerleri Atla, Kalanı Ekle
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

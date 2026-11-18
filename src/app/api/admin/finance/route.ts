@@ -70,13 +70,41 @@ export async function POST(request: Request) {
     }
 
     const currency = body?.currency === "USD" ? "USD" : "TRY";
+    const type = body?.type === "borc" ? "borc" : "alacak";
+
+    // Mükerrer kayıt kontrolü: aynı belge no VEYA aynı cari + aynı tutar
+    if (body?.force !== true) {
+      const { data: sameRows } = await supabase
+        .from("transactions")
+        .select("title, customer_name, contact_name, amount")
+        .eq("type", type);
+      const lc = (s: string | null | undefined) => (s ?? "").trim().toLocaleLowerCase("tr-TR");
+      const dup = (sameRows ?? []).find(
+        (r) =>
+          (title && lc(r.title) === lc(title)) ||
+          (lc(r.customer_name || r.contact_name) === lc(customerName) && Math.abs(Number(r.amount) - amount) < 0.005)
+      );
+      if (dup) {
+        const byDoc = !!title && lc(dup.title) === lc(title);
+        return NextResponse.json(
+          {
+            success: false,
+            duplicate: true,
+            error: byDoc
+              ? "Dikkat: Bu belge numarasına ait kayıt zaten mevcut!"
+              : "Dikkat: Aynı cari ve aynı tutarla daha önce kayıt girilmiş!",
+          },
+          { status: 409 }
+        );
+      }
+    }
 
     const { data, error } = await supabase
       .from("transactions")
       .insert({
         currency,
         usd_amount: currency === "USD" ? amount : null,
-        type: body?.type === "borc" ? "borc" : "alacak",
+        type,
         customer_name: customerName,
         contact_name: customerName,
         customer_phone: phone || null,
@@ -88,7 +116,7 @@ export async function POST(request: Request) {
         amount,
         paid_amount: 0,
         status: "bekliyor",
-        category: "Cihaz Onarım / Servis",
+        category: str(body?.category).slice(0, 100) || "Cihaz Onarım / Servis",
         due_date: str(body?.dueDate) || null,
       })
       .select("id")
