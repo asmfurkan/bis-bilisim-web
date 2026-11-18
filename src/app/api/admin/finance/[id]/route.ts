@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { logAudit } from "@/lib/audit";
 import { ensureCustomers, fetchReceivable, parseAmount, parseMethod } from "@/lib/financeServer";
 import type { Database } from "@/lib/database.types";
 
@@ -51,12 +52,20 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/fina
     if (Object.keys(updates).length === 0) return fail("Güncellenecek alan bulunamadı.", 400);
 
     const supabase = getSupabaseAdmin();
+    const { data: before } = await supabase.from("transactions").select("*").eq("id", id).single();
     const { error } = await supabase.from("transactions").update(updates).eq("id", id);
     if (error) {
       console.error("Finans API Gerçek Hata:", error);
       return fail(`Kayıt güncellenemedi: ${error.message}`);
     }
     if (updates.customer_name) await ensureCustomers([{ name: updates.customer_name, phone: updates.customer_phone }]);
+    await logAudit({
+      entity: "transaction",
+      entityId: id,
+      action: "update",
+      summary: `Kayıt düzenlendi: ${before?.customer_name ?? ""}${before?.title ? ` (${before.title})` : ""}`,
+      snapshot: { transaction: before },
+    });
     return NextResponse.json({ success: true, receivable: await fetchReceivable(id) });
   } catch (error) {
     console.error("Finans API Gerçek Hata:", error);
@@ -68,11 +77,20 @@ export async function DELETE(_request: Request, ctx: RouteContext<"/api/admin/fi
   if (!(await isAdminAuthenticated())) return fail("Yetkisiz erişim.", 401);
   const { id } = await ctx.params;
   const supabase = getSupabaseAdmin();
+  const { data: before } = await supabase.from("transactions").select("*").eq("id", id).single();
+  const { data: logs } = await supabase.from("payment_logs").select("*").eq("transaction_id", id);
   await supabase.from("payment_logs").delete().eq("transaction_id", id);
   const { error } = await supabase.from("transactions").delete().eq("id", id);
   if (error) {
     console.error("Finans API Gerçek Hata:", error);
     return fail("Kayıt silinemedi.");
   }
+  await logAudit({
+    entity: "transaction",
+    entityId: id,
+    action: "delete",
+    summary: `Kayıt silindi: ${before?.customer_name ?? ""} ${before?.amount ?? ""} ${before?.currency ?? ""}${before?.title ? ` (${before.title})` : ""}`,
+    snapshot: { transaction: before, payments: logs ?? [] },
+  });
   return NextResponse.json({ success: true });
 }

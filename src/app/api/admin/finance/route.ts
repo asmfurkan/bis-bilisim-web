@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { ensureCustomers, fetchPayments, fetchReceivable, parseAmount, parseMethod, toReceivable } from "@/lib/financeServer";
+import { ensureCustomers, fetchPayments, fetchReceivable, getUsdRate, parseAmount, parseMethod, toReceivable } from "@/lib/financeServer";
+import { logAudit } from "@/lib/audit";
 
 const unauthorized = () => NextResponse.json({ success: false, error: "Yetkisiz erişim." }, { status: 401 });
 const fail = (error: string, status = 500) => NextResponse.json({ success: false, error }, { status });
@@ -115,6 +116,7 @@ export async function POST(request: Request) {
         payment_method: parseMethod(body?.paymentMethod),
         amount,
         paid_amount: 0,
+        rate: currency === "USD" ? await getUsdRate() : null,
         status: "bekliyor",
         category: str(body?.category).slice(0, 100) || "Cihaz Onarım / Servis",
         due_date: str(body?.dueDate) || null,
@@ -127,6 +129,12 @@ export async function POST(request: Request) {
       return fail(`Kayıt oluşturulamadı: ${error.message}`);
     }
     await ensureCustomers([{ name: customerName, phone }]);
+    await logAudit({
+      entity: "transaction",
+      entityId: data.id,
+      action: "create",
+      summary: `${type === "borc" ? "Borç" : "Alacak"}: ${customerName} ${amount} ${currency}${title ? ` (${title})` : ""}`,
+    });
     return NextResponse.json({ success: true, receivable: await fetchReceivable(data.id) });
   } catch (error) {
     console.error("Finans API Gerçek Hata:", error);

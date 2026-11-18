@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { logAudit } from "@/lib/audit";
 
 const fail = (error: string, status = 500) => NextResponse.json({ success: false, error }, { status });
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
@@ -16,7 +17,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/cust
     if (!name) return fail("Cari adı boş olamaz.", 400);
 
     const supabase = getSupabaseAdmin();
-    const { data: current, error: readError } = await supabase.from("customers").select("name").eq("id", id).single();
+    const { data: current, error: readError } = await supabase.from("customers").select("*").eq("id", id).single();
     if (readError || !current) return fail("Cari bulunamadı.", 404);
 
     const lc = (s: string) => s.trim().toLocaleLowerCase("tr-TR");
@@ -42,6 +43,13 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/cust
       .update({ customer_phone: phone || null })
       .eq("customer_name", name);
 
+    await logAudit({
+      entity: "customer",
+      entityId: id,
+      action: "update",
+      summary: `Cari düzenlendi: ${current.name}${current.name !== name ? ` → ${name}` : ""}`,
+      snapshot: { customer: current },
+    });
     return NextResponse.json({ success: true, customer: { id, name, phone: phone || null, address: address || null } });
   } catch (error) {
     console.error("Cari güncelleme hatası:", error);
@@ -52,10 +60,18 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/cust
 export async function DELETE(_request: Request, ctx: RouteContext<"/api/admin/customers/[id]">) {
   if (!(await isAdminAuthenticated())) return fail("Yetkisiz erişim.", 401);
   const { id } = await ctx.params;
+  const { data: before } = await getSupabaseAdmin().from("customers").select("*").eq("id", id).single();
   const { error } = await getSupabaseAdmin().from("customers").delete().eq("id", id);
   if (error) {
     console.error("Cari silinemedi:", error);
     return fail(`Cari silinemedi: ${error.message}`);
   }
+  await logAudit({
+    entity: "customer",
+    entityId: id,
+    action: "delete",
+    summary: `Cari silindi: ${before?.name ?? ""}`,
+    snapshot: { customer: before },
+  });
   return NextResponse.json({ success: true });
 }

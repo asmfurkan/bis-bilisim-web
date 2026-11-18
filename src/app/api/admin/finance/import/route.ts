@@ -3,6 +3,7 @@ import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { parseAmount, parseDate } from "@/lib/invoiceImport";
 import { ensureCustomers } from "@/lib/financeServer";
+import { logAudit } from "@/lib/audit";
 
 const MAX_ROWS = 1000;
 
@@ -97,6 +98,13 @@ export async function POST(request: Request) {
     }
 
     await ensureCustomers(toInsert.map((t) => ({ name: t.customer_name })));
+    if (toInsert.length > 0) {
+      await logAudit({
+        entity: "import",
+        action: "import",
+        summary: `Excel ile ${toInsert.length} ${type === "borc" ? "borç" : "alacak"} kaydı yüklendi${duplicates ? ` (${duplicates} mükerrer ${mode === "force" ? "dahil" : "atlandı"})` : ""}`,
+      });
+    }
 
     return NextResponse.json({ success: true, inserted: toInsert.length, duplicates, invalid });
   } catch (error) {

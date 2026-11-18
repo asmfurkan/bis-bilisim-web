@@ -24,6 +24,7 @@ export function toReceivable(row: TransactionRow, payments: ReceivablePayment[] 
     note: row.notes,
     paymentMethod: row.payment_method ?? null,
     category: row.category ?? "",
+    rate: row.rate != null ? Number(row.rate) : null,
     status: row.status ?? "bekliyor",
     createdAt: row.created_at,
     payments,
@@ -45,7 +46,7 @@ export async function fetchPayments(ids: string[]) {
   }
   for (const p of data ?? []) {
     const list = map.get(p.transaction_id) ?? [];
-    list.push({ id: p.id, amount: Number(p.amount), paidAt: p.created_at, note: p.note, method: p.payment_method ?? null });
+    list.push({ id: p.id, amount: Number(p.amount), paidAt: p.created_at, note: p.note, method: p.payment_method ?? null, accountId: p.account_id ?? null, rate: p.rate != null ? Number(p.rate) : null });
     map.set(p.transaction_id, list);
   }
   return map;
@@ -84,6 +85,32 @@ export async function ensureCustomers(list: { name: string; phone?: string | nul
     if (insertError) throw insertError;
   } catch (error) {
     console.error("Cari (customers) kaydı yapılamadı:", error);
+  }
+}
+
+/** Kayıtlı güncel USD kuru; yoksa null. */
+export async function getUsdRate() {
+  try {
+    const { data } = await getSupabaseAdmin().from("exchange_rates").select("rate").eq("currency", "USD").maybeSingle();
+    return data ? Number(data.rate) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Ödeme yöntemine göre varsayılan hesap: Nakit/Fiş -> kasa, diğerleri -> banka. */
+export async function defaultAccountId(method: string | null) {
+  try {
+    const kind = method === "Nakit" || method === "Fiş" || !method ? "kasa" : "banka";
+    const { data } = await getSupabaseAdmin()
+      .from("accounts")
+      .select("id")
+      .eq("kind", kind)
+      .order("created_at", { ascending: true })
+      .limit(1);
+    return data?.[0]?.id ?? null;
+  } catch {
+    return null;
   }
 }
 

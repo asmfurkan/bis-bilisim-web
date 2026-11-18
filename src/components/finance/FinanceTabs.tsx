@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Check, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
-import { formatTRY, KASA_METHODS, PAYMENT_METHODS, remaining, toTRY, type Receivable } from "@/lib/finance";
+import { formatTRY, KASA_METHODS, PAYMENT_METHODS, payTRY, remaining, toTRY, type Account, type Receivable } from "@/lib/finance";
 
 const inputClass =
   "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-100";
@@ -246,7 +246,17 @@ export function CustomersTab({
 }
 
 /** Günlük kasa: tarih aralığı + ödeme yöntemi filtresiyle tahsilat ve ödemeler. */
-export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate: number | null; onChanged?: () => void }) {
+export function KasaTab({
+  items,
+  rate,
+  accounts = [],
+  onChanged,
+}: {
+  items: Receivable[];
+  rate: number | null;
+  accounts?: Account[];
+  onChanged?: () => void;
+}) {
   const [from, setFrom] = useState(() => dayOf(new Date()));
   const [to, setTo] = useState(() => dayOf(new Date()));
   // "kasa" = Nakit / Banka POS / Fiş, "hepsi" = tüm yöntemler, aksi halde tek yöntem
@@ -258,6 +268,7 @@ export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate:
     amount: number;
     sym: string;
     method: string;
+    accountId: string;
     note: string;
     customer: string;
   } | null>(null);
@@ -285,6 +296,7 @@ export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate:
         body: JSON.stringify({
           amount: f.get("amount"),
           paymentMethod: f.get("paymentMethod"),
+          accountId: f.get("accountId"),
           note: f.get("note"),
           paidAt: date ? `${date}T${hhmm}:00+03:00` : undefined,
         }),
@@ -322,6 +334,8 @@ export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate:
       id: string;
       txId: string;
       raw: number;
+      accountId: string;
+      account: string;
       sym: string;
       note: string;
       at: string;
@@ -345,6 +359,8 @@ export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate:
           id: p.id,
           txId: r.id,
           raw: p.amount,
+          accountId: p.accountId ?? "",
+          account: accounts.find((a) => a.id === p.accountId)?.name ?? "—",
           sym: r.currency === "USD" ? "$" : "₺",
           note: p.note ?? "",
           at: p.paidAt,
@@ -354,7 +370,7 @@ export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate:
           description: [r.description, p.note].filter(Boolean).join(" · ") || "—",
           method: m || "Belirtilmedi",
           sign: r.type === "borc" ? -1 : 1,
-          tl: toTRY(r, p.amount, rate),
+          tl: payTRY(r, p, rate),
         });
       }
     }
@@ -362,7 +378,7 @@ export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate:
     const income = round(list.filter((e) => e.sign === 1).reduce((t, e) => t + e.tl, 0));
     const expense = round(list.filter((e) => e.sign === -1).reduce((t, e) => t + e.tl, 0));
     return { entries: list, income, expense };
-  }, [items, rate, from, to, method]);
+  }, [items, rate, from, to, method, accounts]);
 
   const btn = "rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200";
   const label = "flex items-center gap-2 text-xs font-semibold text-slate-500";
@@ -429,7 +445,7 @@ export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate:
 
       {error && !editing && <p className="mt-3 text-sm text-red-600">{error}</p>}
       <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm">
-        <table className="w-full min-w-[56rem] text-left text-xs">
+        <table className="w-full min-w-[62rem] text-left text-xs">
           <thead className="bg-slate-50 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
             <tr>
               <th className="px-3 py-2">Tarih / Saat</th>
@@ -438,6 +454,7 @@ export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate:
               <th className="px-3 py-2">İşlem Nedeni</th>
               <th className="px-3 py-2">Açıklama</th>
               <th className="px-3 py-2">Ödeme Türü</th>
+              <th className="px-3 py-2">Hesap</th>
               <th className="px-3 py-2 text-right">Tutar</th>
               <th className="px-3 py-2 text-right">İşlemler</th>
             </tr>
@@ -445,7 +462,7 @@ export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate:
           <tbody>
             {entries.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
+                <td colSpan={9} className="px-3 py-8 text-center text-slate-500">
                   Seçilen tarih aralığı ve ödeme türünde işlem bulunamadı.
                 </td>
               </tr>
@@ -464,6 +481,7 @@ export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate:
                     {e.method}
                   </span>
                 </td>
+                <td className="px-3 py-2 whitespace-nowrap text-slate-600">{e.account}</td>
                 <td className={`px-3 py-2 text-right font-bold whitespace-nowrap ${e.sign === 1 ? "text-emerald-700" : "text-amber-700"}`}>
                   {e.sign === 1 ? "+" : "−"}
                   {formatTRY(e.tl)}
@@ -482,6 +500,7 @@ export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate:
                         amount: e.raw,
                         sym: e.sym,
                         method: e.method === "Belirtilmedi" ? "" : e.method,
+                        accountId: e.accountId,
                         note: e.note,
                         customer: e.customer,
                       });
@@ -528,6 +547,17 @@ export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate:
                   {PAYMENT_METHODS.map((m) => (
                     <option key={m} value={m}>
                       {m}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs font-semibold text-slate-500">
+                Hesap
+                <select name="accountId" defaultValue={editing.accountId} className={`${inputClass} mt-1`}>
+                  <option value="">Hesapsız</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
                     </option>
                   ))}
                 </select>

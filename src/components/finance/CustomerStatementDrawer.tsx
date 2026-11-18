@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { X } from "lucide-react";
-import { formatMoney, formatTRY, toTRY, type Receivable } from "@/lib/finance";
+import { formatMoney, formatTRY, payTRY, toTRY, type Receivable } from "@/lib/finance";
 
 type Movement = {
   key: string;
@@ -64,7 +64,7 @@ export default function CustomerStatementDrawer({
           kind: "odeme",
           amount: p.amount,
           currency: r.currency,
-          tl: toTRY(r, p.amount, rate),
+          tl: payTRY(r, p, rate),
         });
       }
     }

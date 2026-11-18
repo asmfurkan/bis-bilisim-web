@@ -9,6 +9,9 @@ import {
   ArrowUp,
   Banknote,
   BarChart3,
+  FileText,
+  Landmark,
+  ScrollText,
   HandCoins,
   Receipt,
   RefreshCw,
@@ -30,6 +33,7 @@ import CustomerCombobox from "@/components/CustomerCombobox";
 import NetIncomeTable from "@/components/finance/NetIncomeTable";
 import CustomerStatementDrawer from "@/components/finance/CustomerStatementDrawer";
 import { CustomersTab, KasaTab } from "@/components/finance/FinanceTabs";
+import { AccountsTab, AuditTab, ReportsTab } from "@/components/finance/FinanceExtra";
 import {
   CATEGORY_SUGGESTIONS,
   formatMoney,
@@ -37,23 +41,28 @@ import {
   isOverdue,
   PAYMENT_METHODS,
   paidTotal,
+  paidTRY,
   remaining,
   toTRY,
   whatsappReminderHref,
+  type Account,
   type Receivable,
 } from "@/lib/finance";
 
 type Rate = { rate: number; source: string | null; updatedAt: string } | null;
 type SortKey = "date" | "doc" | "customer" | "amount";
 
-type Tab = "alacak" | "borc" | "cariler" | "kasa" | "ozet";
+type Tab = "alacak" | "borc" | "cariler" | "kasa" | "hesaplar" | "ozet" | "raporlar" | "gecmis";
 
 const TABS: { id: Tab; label: string; icon: typeof Users }[] = [
   { id: "alacak", label: "Alacaklar (Gelirler)", icon: HandCoins },
   { id: "borc", label: "Borçlar (Ödenecekler)", icon: Receipt },
   { id: "cariler", label: "Cariler", icon: Users },
   { id: "kasa", label: "Günlük Kasa", icon: Wallet },
+  { id: "hesaplar", label: "Kasa / Banka Hesapları", icon: Landmark },
   { id: "ozet", label: "Genel Özet", icon: BarChart3 },
+  { id: "raporlar", label: "Raporlar", icon: FileText },
+  { id: "gecmis", label: "Geçmiş (Denetim)", icon: ScrollText },
 ];
 
 type Filter = "hepsi" | "acik" | "vadesi_gecen" | "odendi";
@@ -323,12 +332,14 @@ function ReceivableForm({
 function ReceivableRow({
   item,
   rate,
+  accounts,
   onOpenCustomer,
   onChange,
   onDeleted,
 }: {
   item: Receivable;
   rate: number | null;
+  accounts: Account[];
   onOpenCustomer: (name: string) => void;
   onChange: (r: Receivable) => void;
   onDeleted: (id: string) => void;
@@ -556,6 +567,14 @@ function ReceivableRow({
               <form onSubmit={handlePayment} className="flex flex-col gap-2">
                 <PaymentMethodPicker defaultValue={item.paymentMethod} />
                 <div className="flex flex-col gap-2 sm:flex-row">
+                <select name="accountId" defaultValue="" aria-label="Hesap" className={`${compactInput} sm:w-48 sm:shrink-0`}>
+                  <option value="">Hesap: otomatik</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
                 <input
                   name="amount"
                   required
@@ -640,6 +659,7 @@ export default function FinanceDashboard() {
   const [importing, setImporting] = useState(false);
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "date", dir: "desc" });
   const [statementFor, setStatementFor] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [rate, setRate] = useState<Rate>(null);
   const [rateInput, setRateInput] = useState("");
   const [rateBusy, setRateBusy] = useState(false);
@@ -661,10 +681,21 @@ export default function FinanceDashboard() {
     }
   }, []);
 
+  const loadAccounts = useCallback(async () => {
+    try {
+      const result = await (await fetch("/api/admin/accounts")).json();
+      if (result.success) setAccounts(result.accounts);
+    } catch {
+      /* hesaplar yüklenemezse liste yine çalışır */
+    }
+  }, []);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
-  }, [load]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadAccounts();
+  }, [load, loadAccounts]);
 
   useEffect(() => {
     fetch("/api/tcmb")
@@ -733,7 +764,7 @@ export default function FinanceDashboard() {
         payable += toTRY(r, Math.max(0, remaining(r)), rv);
         continue;
       }
-      collected += toTRY(r, paidTotal(r), rv);
+      collected += paidTRY(r, rv);
       const left = Math.max(0, remaining(r));
       outstanding += toTRY(r, left, rv);
       if (isOverdue(r)) overdue += toTRY(r, left, rv);
@@ -781,7 +812,7 @@ export default function FinanceDashboard() {
   return (
     <div className="min-h-[70vh] bg-slate-50 pt-16">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 md:flex-row md:items-start lg:px-8">
-        <aside className="h-fit shrink-0 rounded-2xl bg-slate-900 p-4 text-white md:sticky md:top-20 md:w-52">
+        <aside className="h-fit shrink-0 rounded-2xl bg-slate-900 p-4 text-white md:sticky md:top-20 md:w-52 print:hidden">
           <div className="px-1 pb-3">
             <h1 className="text-sm font-extrabold tracking-tight">Finans Paneli</h1>
           </div>
@@ -918,7 +949,19 @@ export default function FinanceDashboard() {
           )}
 
           {tab === "cariler" && !loading && <CustomersTab items={items} rate={rv} onOpen={setStatementFor} onCustomerChanged={load} />}
-          {tab === "kasa" && !loading && <KasaTab items={items} rate={rv} onChanged={load} />}
+          {tab === "kasa" && !loading && <KasaTab items={items} rate={rv} accounts={accounts} onChanged={load} />}
+          {tab === "hesaplar" && !loading && (
+            <AccountsTab accounts={accounts} items={items} rate={rv} onChanged={loadAccounts} />
+          )}
+          {tab === "raporlar" && !loading && <ReportsTab items={items} rate={rv} />}
+          {tab === "gecmis" && (
+            <AuditTab
+              onRestored={() => {
+                load();
+                loadAccounts();
+              }}
+            />
+          )}
 
           {isList && (
             <>
@@ -1010,6 +1053,7 @@ export default function FinanceDashboard() {
                             key={item.id}
                             item={item}
                             rate={rv}
+                            accounts={accounts}
                             onOpenCustomer={setStatementFor}
                             onChange={(updated) => setItems((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))}
                             onDeleted={(id) => setItems((prev) => prev.filter((r) => r.id !== id))}

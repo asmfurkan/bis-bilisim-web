@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { formatTRY, toTRY, type Receivable } from "@/lib/finance";
+import { formatTRY, payTRY, toTRY, type Receivable } from "@/lib/finance";
 
 type Row = { month: string; income: number; expense: number; collected: number };
 
@@ -35,7 +35,7 @@ export default function NetIncomeTable({ items, rate }: { items: Receivable[]; r
       if (r.type === "alacak") row.income += tl;
       else row.expense += tl;
       if (r.type === "alacak") {
-        for (const p of r.payments) get(p.paidAt).collected += toTRY(r, p.amount, rate);
+        for (const p of r.payments) get(p.paidAt).collected += payTRY(r, p, rate);
       }
     }
     const list = [...map.values()].sort((a, b) => b.month.localeCompare(a.month));

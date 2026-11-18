@@ -78,9 +78,13 @@ export interface Database {
           currency: string | null;
           usd_amount: number | null;
           payment_method: string | null;
+          rate: number | null;
           created_at: string;
         };
         Insert: {
+          id?: string;
+          created_at?: string;
+          rate?: number | null;
           payment_method?: string | null;
           currency?: string | null;
           usd_amount?: number | null;
@@ -113,6 +117,7 @@ export interface Database {
           due_date?: string | null;
           category?: string | null;
           contact_name?: string | null;
+          rate?: number | null;
         };
       };
       payment_logs: {
@@ -123,9 +128,15 @@ export interface Database {
           amount: number;
           note: string | null;
           payment_method: string | null;
+          account_id: string | null;
+          rate: number | null;
           created_at: string;
         };
         Insert: {
+          id?: string;
+          created_at?: string;
+          account_id?: string | null;
+          rate?: number | null;
           transaction_id: string;
           amount: number;
           note?: string | null;
@@ -136,13 +147,41 @@ export interface Database {
           note?: string | null;
           payment_method?: string | null;
           created_at?: string;
+          account_id?: string | null;
         };
       };
       customers: {
         Relationships: [];
         Row: { id: string; name: string; phone: string | null; address: string | null; created_at: string };
-        Insert: { name: string; phone?: string | null; address?: string | null };
+        Insert: { id?: string; created_at?: string; name: string; phone?: string | null; address?: string | null };
         Update: { name?: string; phone?: string | null; address?: string | null };
+      };
+      audit_log: {
+        Relationships: [];
+        Row: {
+          id: string;
+          created_at: string;
+          entity: string;
+          entity_id: string | null;
+          action: string;
+          summary: string | null;
+          snapshot: unknown;
+          restored_at: string | null;
+        };
+        Insert: {
+          entity: string;
+          entity_id?: string | null;
+          action: string;
+          summary?: string | null;
+          snapshot?: unknown;
+        };
+        Update: { restored_at?: string | null };
+      };
+      accounts: {
+        Relationships: [];
+        Row: { id: string; name: string; kind: string; opening_balance: number; created_at: string };
+        Insert: { id?: string; created_at?: string; name: string; kind?: string; opening_balance?: number };
+        Update: { name?: string; kind?: string; opening_balance?: number };
       };
       exchange_rates: {
         Relationships: [];

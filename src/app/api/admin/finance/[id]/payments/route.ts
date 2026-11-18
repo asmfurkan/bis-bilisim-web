@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
-import { fetchReceivable, parseAmount, parseMethod } from "@/lib/financeServer";
+import { defaultAccountId, fetchReceivable, getUsdRate, parseAmount, parseMethod } from "@/lib/financeServer";
+import { logAudit } from "@/lib/audit";
 
 const fail = (error: string, status = 500) => NextResponse.json({ success: false, error }, { status });
 
@@ -25,13 +26,20 @@ export async function POST(request: Request, ctx: RouteContext<"/api/admin/finan
     const current = await fetchReceivable(id);
     // Fazla ödemeye izin verilir: bakiye negatif (alacaklı) görünür, durum "odendi" olur.
 
+    const method = parseMethod(body?.paymentMethod);
+    const accountId =
+      typeof body?.accountId === "string" && body.accountId ? body.accountId : await defaultAccountId(method);
+    // USD kayıtlarda ödeme anındaki kur saklanır (sonradan değişmez)
+    const rate = current.currency === "USD" ? await getUsdRate() : null;
     const { error: logError } = await getSupabaseAdmin()
       .from("payment_logs")
       .insert({
         transaction_id: id,
         amount,
         note: typeof body?.note === "string" && body.note.trim() ? body.note.trim() : null,
-        payment_method: parseMethod(body?.paymentMethod),
+        payment_method: method,
+        account_id: accountId,
+        rate,
       });
     if (logError) {
       console.error("Finans API Gerçek Hata:", logError);
@@ -43,6 +51,12 @@ export async function POST(request: Request, ctx: RouteContext<"/api/admin/finan
       console.error("Finans API Gerçek Hata:", error);
       return fail("Bakiye güncellenemedi.");
     }
+    await logAudit({
+      entity: "payment",
+      entityId: id,
+      action: "create",
+      summary: `${current.customerName}: ${amount} ${current.currency} ${current.type === "borc" ? "ödeme" : "tahsilat"}${method ? ` (${method})` : ""}`,
+    });
     return NextResponse.json({ success: true, receivable: await fetchReceivable(id) });
   } catch (error) {
     console.error("Finans API Gerçek Hata:", error);
@@ -74,6 +88,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/fina
       note: typeof body?.note === "string" && body.note.trim() ? body.note.trim().slice(0, 500) : null,
       payment_method: parseMethod(body?.paymentMethod),
     };
+    if (body?.accountId !== undefined) updates.account_id = typeof body.accountId === "string" && body.accountId ? body.accountId : null;
     if (typeof body?.paidAt === "string" && body.paidAt) {
       const d = new Date(body.paidAt);
       if (Number.isNaN(d.getTime())) return fail("Geçersiz tarih.", 400);
@@ -87,6 +102,13 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/fina
       return fail("Ödeme güncellenemedi.");
     }
     await applyPaid(id, current.paid - Number(log.amount) + amount, current.amount);
+    await logAudit({
+      entity: "payment",
+      entityId: id,
+      action: "update",
+      summary: `${current.customerName}: ödeme ${Number(log.amount)} → ${amount} ${current.currency}`,
+      snapshot: { payment: log },
+    });
     return NextResponse.json({ success: true, receivable: await fetchReceivable(id) });
   } catch (error) {
     console.error("Finans API Gerçek Hata:", error);
@@ -116,6 +138,13 @@ export async function DELETE(request: Request, ctx: RouteContext<"/api/admin/fin
       return fail("Ödeme silinemedi.");
     }
     await applyPaid(id, current.paid - Number(log.amount), current.amount);
+    await logAudit({
+      entity: "payment",
+      entityId: id,
+      action: "delete",
+      summary: `${current.customerName}: ${Number(log.amount)} ${current.currency} ödeme silindi`,
+      snapshot: { payment: log },
+    });
     return NextResponse.json({ success: true, receivable: await fetchReceivable(id) });
   } catch (error) {
     console.error("Finans API Gerçek Hata:", error);

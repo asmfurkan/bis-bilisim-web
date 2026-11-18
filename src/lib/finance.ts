@@ -25,6 +25,9 @@ export interface ReceivablePayment {
   paidAt: string;
   note: string | null;
   method: string | null;
+  accountId: string | null;
+  /** Ödeme anındaki USD kuru (USD kayıtlar için). */
+  rate: number | null;
 }
 
 export interface Receivable {
@@ -45,6 +48,8 @@ export interface Receivable {
   paymentMethod: string | null;
   /** İşlem nedeni / kalem (Parça Satışı, Ofis Gideri...). */
   category: string;
+  /** Kayıt anındaki USD kuru (USD kayıtlar için). */
+  rate: number | null;
   status: string;
   createdAt: string;
   payments: ReceivablePayment[];
@@ -63,6 +68,25 @@ export function remaining(r: Receivable) {
 export function toTRY(r: Receivable, value: number, rate: number | null) {
   if (r.currency !== "USD") return value;
   return Math.round(value * (rate ?? 0) * 100) / 100;
+}
+
+/** Ödemenin TL karşılığı: USD ise ödeme anındaki kurla (kayıtlı değilse güncel kurla). */
+export function payTRY(r: Receivable, p: ReceivablePayment, currentRate: number | null) {
+  if (r.currency !== "USD") return p.amount;
+  return Math.round(p.amount * (p.rate ?? currentRate ?? 0) * 100) / 100;
+}
+
+/** Tahsil edilen/ödenen toplam (TL): ödeme kayıtları varsa ödeme anındaki kurla, yoksa güncel kurla. */
+export function paidTRY(r: Receivable, currentRate: number | null) {
+  if (r.payments.length > 0) return r.payments.reduce((t, p) => t + payTRY(r, p, currentRate), 0);
+  return toTRY(r, r.paid, currentRate);
+}
+
+export interface Account {
+  id: string;
+  name: string;
+  kind: "kasa" | "banka";
+  openingBalance: number;
 }
 
 export function formatMoney(value: number, currency: Currency) {
