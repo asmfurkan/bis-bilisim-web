@@ -419,18 +419,22 @@ function ReceivableRow({
   return (
     <Fragment>
       <tr className="border-t border-slate-100 align-middle hover:bg-slate-50/70">
-        <td className="px-2 py-1.5">
-          <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClass}`}>
-            {statusLabel}
-          </span>
-          {item.paymentMethod && (
-            <span className="ml-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
-              {item.paymentMethod}
+        <td className="px-2 py-1.5 align-top">
+          <div className="flex min-w-0 flex-col items-start gap-1">
+            <span className={`inline-block max-w-full rounded-full px-2 py-0.5 text-[11px] leading-tight font-semibold whitespace-nowrap ${statusClass}`}>
+              {statusLabel}
             </span>
-          )}
-          {item.type === "borc" && (
-            <span className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">Borç</span>
-          )}
+            {item.paymentMethod && (
+              <span className="inline-block max-w-full rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] leading-tight font-semibold whitespace-nowrap text-indigo-700">
+                {item.paymentMethod}
+              </span>
+            )}
+            {item.type === "borc" && (
+              <span className="inline-block max-w-full rounded-full bg-amber-50 px-2 py-0.5 text-[11px] leading-tight font-semibold whitespace-nowrap text-amber-700">
+                Borç
+              </span>
+            )}
+          </div>
         </td>
         <td className="px-2 py-1.5 text-slate-500">
           {new Date(item.createdAt).toLocaleDateString("tr-TR")}
@@ -914,7 +918,7 @@ export default function FinanceDashboard() {
           )}
 
           {tab === "cariler" && !loading && <CustomersTab items={items} rate={rv} onOpen={setStatementFor} onCustomerChanged={load} />}
-          {tab === "kasa" && !loading && <KasaTab items={items} rate={rv} />}
+          {tab === "kasa" && !loading && <KasaTab items={items} rate={rv} onChanged={load} />}
 
           {isList && (
             <>
@@ -981,7 +985,7 @@ export default function FinanceDashboard() {
                   <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
                     <table className="w-full table-fixed text-left text-xs">
                       <colgroup>
-                        <col className="w-[8%]" />
+                        <col className="w-[10%]" />
                         <col className="w-[9%]" />
                         <col className="w-[11%]" />
                         <col className="w-[17%]" />

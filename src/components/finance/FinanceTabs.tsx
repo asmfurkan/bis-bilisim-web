@@ -246,15 +246,84 @@ export function CustomersTab({
 }
 
 /** Günlük kasa: tarih aralığı + ödeme yöntemi filtresiyle tahsilat ve ödemeler. */
-export function KasaTab({ items, rate }: { items: Receivable[]; rate: number | null }) {
+export function KasaTab({ items, rate, onChanged }: { items: Receivable[]; rate: number | null; onChanged?: () => void }) {
   const [from, setFrom] = useState(() => dayOf(new Date()));
   const [to, setTo] = useState(() => dayOf(new Date()));
   // "kasa" = Nakit / Banka POS / Fiş, "hepsi" = tüm yöntemler, aksi halde tek yöntem
   const [method, setMethod] = useState<string>("kasa");
+  const [editing, setEditing] = useState<{
+    txId: string;
+    id: string;
+    at: string;
+    amount: number;
+    sym: string;
+    method: string;
+    note: string;
+    customer: string;
+  } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  async function call(url: string, init: RequestInit) {
+    const result = await (await fetch(url, { ...init, headers: { "Content-Type": "application/json" } })).json();
+    return result as { success: boolean; error?: string };
+  }
+
+  async function handleSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editing) return;
+    const f = new FormData(event.currentTarget);
+    // Saat bilgisi korunur, yalnızca gün değişir (İstanbul, UTC+3)
+    const hhmm = new Date(editing.at).toLocaleTimeString("en-GB", { timeZone: "Europe/Istanbul", hour: "2-digit", minute: "2-digit" });
+    const date = String(f.get("date") || "");
+    setSaving(true);
+    setError("");
+    try {
+      const result = await call(`/api/admin/finance/${editing.txId}/payments?paymentId=${editing.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          amount: f.get("amount"),
+          paymentMethod: f.get("paymentMethod"),
+          note: f.get("note"),
+          paidAt: date ? `${date}T${hhmm}:00+03:00` : undefined,
+        }),
+      });
+      if (!result.success) {
+        setError(result.error || "Kaydedilemedi.");
+        return;
+      }
+      setEditing(null);
+      onChanged?.();
+    } catch {
+      setError("Bağlantı hatası oluştu.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(txId: string, id: string, customer: string) {
+    if (!window.confirm(`${customer} için bu kasa işlemi silinsin mi? Cari bakiyesi de buna göre güncellenir.`)) return;
+    setBusyId(id);
+    setError("");
+    try {
+      const result = await call(`/api/admin/finance/${txId}/payments?paymentId=${id}`, { method: "DELETE" });
+      if (result.success) onChanged?.();
+      else setError(result.error || "Silinemedi.");
+    } catch {
+      setError("Bağlantı hatası oluştu.");
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   const { entries, income, expense } = useMemo(() => {
     const list: {
       id: string;
+      txId: string;
+      raw: number;
+      sym: string;
+      note: string;
       at: string;
       customer: string;
       doc: string;
@@ -274,6 +343,10 @@ export function KasaTab({ items, rate }: { items: Receivable[]; rate: number | n
         if (to && d > to) continue;
         list.push({
           id: p.id,
+          txId: r.id,
+          raw: p.amount,
+          sym: r.currency === "USD" ? "$" : "₺",
+          note: p.note ?? "",
           at: p.paidAt,
           customer: r.customerName,
           doc: r.title || "—",
@@ -354,8 +427,9 @@ export function KasaTab({ items, rate }: { items: Receivable[]; rate: number | n
         </div>
       </div>
 
+      {error && !editing && <p className="mt-3 text-sm text-red-600">{error}</p>}
       <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm">
-        <table className="w-full min-w-[52rem] text-left text-xs">
+        <table className="w-full min-w-[56rem] text-left text-xs">
           <thead className="bg-slate-50 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
             <tr>
               <th className="px-3 py-2">Tarih / Saat</th>
@@ -365,12 +439,13 @@ export function KasaTab({ items, rate }: { items: Receivable[]; rate: number | n
               <th className="px-3 py-2">Açıklama</th>
               <th className="px-3 py-2">Ödeme Türü</th>
               <th className="px-3 py-2 text-right">Tutar</th>
+              <th className="px-3 py-2 text-right">İşlemler</th>
             </tr>
           </thead>
           <tbody>
             {entries.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-slate-500">
+                <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
                   Seçilen tarih aralığı ve ödeme türünde işlem bulunamadı.
                 </td>
               </tr>
@@ -393,11 +468,96 @@ export function KasaTab({ items, rate }: { items: Receivable[]; rate: number | n
                   {e.sign === 1 ? "+" : "−"}
                   {formatTRY(e.tl)}
                 </td>
+                <td className="px-3 py-2 text-right whitespace-nowrap">
+                  <button
+                    type="button"
+                    title="Düzenle"
+                    aria-label="Düzenle"
+                    onClick={() => {
+                      setError("");
+                      setEditing({
+                        txId: e.txId,
+                        id: e.id,
+                        at: e.at,
+                        amount: e.raw,
+                        sym: e.sym,
+                        method: e.method === "Belirtilmedi" ? "" : e.method,
+                        note: e.note,
+                        customer: e.customer,
+                      });
+                    }}
+                    className="rounded-md p-1 text-slate-600 hover:bg-slate-100"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Sil"
+                    aria-label="Sil"
+                    disabled={busyId === e.id}
+                    onClick={() => handleDelete(e.txId, e.id, e.customer)}
+                    className="rounded-md p-1 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {busyId === e.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {editing && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true">
+          <form onSubmit={handleSave} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-slate-900">Kasa İşlemini Düzenle</h3>
+              <button type="button" aria-label="Kapat" onClick={() => setEditing(null)} className="text-slate-400 hover:text-slate-900">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">{editing.customer}</p>
+            <div className="mt-4 flex flex-col gap-3">
+              <label className="text-xs font-semibold text-slate-500">
+                Tutar ({editing.sym})
+                <input name="amount" required inputMode="decimal" defaultValue={editing.amount} className={`${inputClass} mt-1`} />
+              </label>
+              <label className="text-xs font-semibold text-slate-500">
+                Ödeme Türü
+                <select name="paymentMethod" defaultValue={editing.method} className={`${inputClass} mt-1`}>
+                  <option value="">Belirtilmedi</option>
+                  {PAYMENT_METHODS.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs font-semibold text-slate-500">
+                Tarih
+                <input name="date" type="date" required defaultValue={dayOf(new Date(editing.at))} className={`${inputClass} mt-1`} />
+              </label>
+              <label className="text-xs font-semibold text-slate-500">
+                Not / Açıklama
+                <input name="note" maxLength={500} defaultValue={editing.note} className={`${inputClass} mt-1`} />
+              </label>
+              {error && <p className="text-sm text-red-600">{error}</p>}
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setEditing(null)} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">
+                Vazgeç
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex items-center gap-1.5 rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900 disabled:opacity-60"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                Kaydet
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

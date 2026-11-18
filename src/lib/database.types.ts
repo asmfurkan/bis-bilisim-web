@@ -134,6 +134,8 @@ export interface Database {
         Update: {
           amount?: number;
           note?: string | null;
+          payment_method?: string | null;
+          created_at?: string;
         };
       };
       customers: {

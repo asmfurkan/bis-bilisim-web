@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import type { Database } from "@/lib/database.types";
 import { fetchReceivable, parseAmount, parseMethod } from "@/lib/financeServer";
 
 const fail = (error: string, status = 500) => NextResponse.json({ success: false, error }, { status });
@@ -42,6 +43,50 @@ export async function POST(request: Request, ctx: RouteContext<"/api/admin/finan
       console.error("Finans API Gerçek Hata:", error);
       return fail("Bakiye güncellenemedi.");
     }
+    return NextResponse.json({ success: true, receivable: await fetchReceivable(id) });
+  } catch (error) {
+    console.error("Finans API Gerçek Hata:", error);
+    return fail("Beklenmeyen bir hata oluştu.");
+  }
+}
+
+export async function PATCH(request: Request, ctx: RouteContext<"/api/admin/finance/[id]/payments">) {
+  if (!(await isAdminAuthenticated())) return fail("Yetkisiz erişim.", 401);
+  const { id } = await ctx.params;
+  const paymentId = new URL(request.url).searchParams.get("paymentId");
+  if (!paymentId) return fail("paymentId gerekli.", 400);
+  try {
+    const body = await request.json();
+    const amount = parseAmount(body?.amount);
+    if (amount === null) return fail("Geçerli bir tutar girin.", 400);
+
+    const supabase = getSupabaseAdmin();
+    const { data: log } = await supabase
+      .from("payment_logs")
+      .select("*")
+      .eq("id", paymentId)
+      .eq("transaction_id", id)
+      .single();
+    if (!log) return fail("Ödeme kaydı bulunamadı.", 404);
+
+    const updates: Database["public"]["Tables"]["payment_logs"]["Update"] = {
+      amount,
+      note: typeof body?.note === "string" && body.note.trim() ? body.note.trim().slice(0, 500) : null,
+      payment_method: parseMethod(body?.paymentMethod),
+    };
+    if (typeof body?.paidAt === "string" && body.paidAt) {
+      const d = new Date(body.paidAt);
+      if (Number.isNaN(d.getTime())) return fail("Geçersiz tarih.", 400);
+      updates.created_at = d.toISOString();
+    }
+
+    const current = await fetchReceivable(id);
+    const { error } = await supabase.from("payment_logs").update(updates).eq("id", paymentId);
+    if (error) {
+      console.error("Finans API Gerçek Hata:", error);
+      return fail("Ödeme güncellenemedi.");
+    }
+    await applyPaid(id, current.paid - Number(log.amount) + amount, current.amount);
     return NextResponse.json({ success: true, receivable: await fetchReceivable(id) });
   } catch (error) {
     console.error("Finans API Gerçek Hata:", error);
